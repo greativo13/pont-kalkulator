@@ -96,7 +96,7 @@
 
   <div class="card">
     <div class="section-title">Összesített teljesítmény (eltelt napok alapján)</div>
-    <svg id="gauge-svg" viewBox="0 0 300 210" style="width:100%; display:block;" role="img" aria-label="Gauge grafikon"></svg>
+    <svg id="gauge-svg" viewBox="0 0 320 230" style="width:100%; display:block;" role="img" aria-label="Gauge grafikon"></svg>
     <div style="display:flex; justify-content:center; gap:20px; margin-top:10px; flex-wrap:wrap;">
       <span style="font-size:12px; display:flex; align-items:center; gap:5px;">
         <span style="display:inline-block; width:12px; height:3px; background:#639922; border-radius:2px;"></span>
@@ -319,7 +319,7 @@
     document.getElementById('lbl-100').textContent = '100% = ' + fmt(t100) + ' pt';
     document.getElementById('lbl-120').textContent = '120% = ' + fmt(t120) + ' pt';
 
-    const cx = 150, cy = 155, ro = 112, ri = 80;
+    const cx = 160, cy = 168, ro = 100, ri = 71;
     const startDeg = 150, totalDeg = 240;
 
     function rad(d) { return d * Math.PI / 180; }
@@ -339,8 +339,8 @@
     function marker(pVal, label, color) {
       const deg = startDeg + (Math.min(pVal, maxPct) / maxPct) * totalDeg;
       const [x1,y1] = pt(ri - 2, deg), [x2,y2] = pt(ro + 2, deg);
-      const [x3,y3] = pt(ro + 4, deg), [x4,y4] = pt(ro + 15, deg);
-      const [lx,ly] = pt(ro + 27, deg);
+      const [x3,y3] = pt(ro + 4, deg), [x4,y4] = pt(ro + 14, deg);
+      const [lx,ly] = pt(ro + 24, deg);
       return `
         <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="white" stroke-width="4" stroke-linecap="round"/>
         <line x1="${x3}" y1="${y3}" x2="${x4}" y2="${y4}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>
