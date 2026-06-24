@@ -317,7 +317,7 @@
   function updateGauge(total, pct, t80, t100, t120, pctColor, elapsed) {
     const maxPct = 130;
     const clampedPct = Math.min(pct, maxPct);
-    const remaining  = Math.max(0, maxPct - clampedPct);
+    const remaining  = Math.max(0.001, maxPct - clampedPct);
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     document.getElementById('gauge-pct').textContent = pct.toFixed(1) + '%';
