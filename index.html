@@ -453,6 +453,32 @@ function showToast(msg) {
         const moved=CATEGORIES.splice(pgDragSrc,1)[0]; CATEGORIES.splice(idx,0,moved);
         pgDragSrc=null; pgSaveConfig(); pgBuildList(); pgUpdateUI();
       });
+      const handle = div.querySelector('.drag-handle');
+      handle.addEventListener('touchstart', e => {
+        pgDragSrc = idx; div.classList.add('dragging'); e.preventDefault();
+      }, { passive: false });
+      handle.addEventListener('touchmove', e => {
+        e.preventDefault();
+        const t = e.touches[0];
+        const over = document.elementFromPoint(t.clientX, t.clientY)?.closest('.category-item');
+        document.querySelectorAll('.category-item').forEach(c => c.classList.remove('drag-over'));
+        if (over && over !== div) over.classList.add('drag-over');
+      }, { passive: false });
+      handle.addEventListener('touchend', e => {
+        div.classList.remove('dragging');
+        const t = e.changedTouches[0];
+        const over = document.elementFromPoint(t.clientX, t.clientY)?.closest('.category-item');
+        document.querySelectorAll('.category-item').forEach(c => c.classList.remove('drag-over'));
+        if (over && over !== div) {
+          const toIdx = parseInt(over.dataset.idx);
+          if (!isNaN(toIdx) && toIdx !== pgDragSrc) {
+            const moved = CATEGORIES.splice(pgDragSrc, 1)[0];
+            CATEGORIES.splice(toIdx, 0, moved);
+            pgSaveConfig(); pgBuildList(); pgUpdateUI();
+          }
+        }
+        pgDragSrc = null;
+      }, { passive: false });
       el.appendChild(div);
     });
   }
