@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Etup Pont Kalkulátor</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f4f4f2;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #1c1c1a; color: #e8e8e4; }
+      .card { background: #2a2a28; border-color: #3a3a38; }
+      .metric-card { background: #242422; }
+      input[type="number"] { background: #2a2a28; color: #e8e8e4; border-color: #3a3a38; }
+      input[type="number"]:focus { border-color: #888; }
+      .bar-bg { background: #3a3a38; }
+      .settings-toggle { color: #b0b0aa; }
+      .day-label, .day-pt { color: #888; }
+      .target-info, .section-title { color: #888; }
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; }
+    .card { background: #fff; border: 0.5px solid #d8d8d4; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .settings-toggle { font-size: 14px; font-weight: 500; color: #555; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .setting-item { display: flex; flex-direction: column; gap: 5px; }
+    .setting-item label { font-size: 12px; color: #777; display: flex; align-items: center; gap: 5px; }
+    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
+    input[type="number"] { width: 100%; padding: 7px 10px; font-size: 14px; border: 0.5px solid #ccc; border-radius: 8px; outline: none; background: #fff; color: #1a1a1a; transition: border-color 0.15s; }
+    input[type="number"]:focus { border-color: #555; }
+    .target-info { font-size: 12px; color: #888; margin-top: 10px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+    .metric-card { background: #f4f4f2; border-radius: 8px; padding: 12px 14px; }
+    @media (prefers-color-scheme: dark) { .metric-card { background: #242422; } }
+    .metric-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+    .metric-value { font-size: 22px; font-weight: 500; }
+    .metric-sub { font-size: 12px; color: #888; margin-top: 2px; }
+    .sep { border: none; border-top: 0.5px solid #d8d8d4; margin: 1.25rem 0; }
+    .section-title { font-size: 13px; font-weight: 500; color: #666; margin-bottom: 12px; }
+    .chart-wrap { position: relative; width: 100%; height: 300px; }
+    .day-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .day-label { font-size: 13px; color: #777; min-width: 50px; }
+    .bar-bg { flex: 2; background: #eeeee8; border-radius: 5px; height: 8px; overflow: hidden; min-width: 0; }
+    .bar-fill { height: 100%; border-radius: 5px; transition: width 0.3s; }
+    .day-pt { font-size: 12px; color: #888; min-width: 58px; text-align: right; }
+    footer { text-align: center; font-size: 12px; color: #aaa; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1><i class="ti ti-chart-bar" aria-hidden="true"></i> Etup Pont Kalkulátor</h1>
+
+  <div class="card">
+    <div class="settings-toggle" onclick="toggleSettings()">
+      <i class="ti ti-settings" aria-hidden="true"></i>
+      Beállítások
+      <i class="ti ti-chevron-down" id="chevron" aria-hidden="true"></i>
+    </div>
+    <div id="settings-panel">
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label>Etup hossza (nap)</label>
+          <input type="number" id="etup-days" min="1" max="10" value="7" step="1" oninput="rebuildDays()">
+        </div>
+        <div class="setting-item">
+          <label>Eltelt napok</label>
+          <input type="number" id="elapsed-days" min="1" max="10" value="1" step="1" oninput="recalc()">
+        </div>
+        <div class="setting-item">
+          <label><span class="dot" style="background:#639922"></span> 80% – pont/nap</label>
+          <input type="number" id="rate-80" min="0.5" value="103" step="0.5" oninput="recalc()">
+        </div>
+        <div class="setting-item">
+          <label><span class="dot" style="background:#1D9E75"></span> 100% – pont/nap</label>
+          <input type="number" id="rate-100" min="0.5" value="130" step="0.5" oninput="recalc()">
+        </div>
+        <div class="setting-item">
+          <label><span class="dot" style="background:#D85A30"></span> 120% – pont/nap</label>
+          <input type="number" id="rate-120" min="0.5" value="156" step="0.5" oninput="recalc()">
+        </div>
+      </div>
+      <div class="target-info" id="target-info"></div>
+    </div>
+  </div>
+
+  <div class="metrics-grid" id="summary-cards"></div>
+
+  <div class="card">
+    <div class="section-title">Összesített teljesítmény (eltelt napok alapján)</div>
+    <div class="chart-wrap">
+      <canvas id="gauge-chart" role="img" aria-label="Összesített teljesítmény százalék és pontok gauge grafikonon"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Napi bevitel</div>
+    <div id="days-list"></div>
+  </div>
+
+  <div style="text-align:center; margin-bottom: 1rem;">
+    <button onclick="resetEtup()" style="padding: 10px 28px; font-size: 14px; border: 0.5px solid #ccc; border-radius: 8px; background: transparent; cursor: pointer; color: #c0392b;">
+      <i class="ti ti-refresh" aria-hidden="true"></i> Új etup indítása
+    </button>
+  </div>
+
+  <footer>Pont Kalkulátor – adatok automatikusan mentve</footer>
+
+</div>
+
+<script>
+  let chart = null;
+  let settingsOpen = true;
+  let builtDays = 0;
+  const LS = 'etup_kalkulator';
+
+  function saveState() {
+    const days = getDays();
+    const state = {
+      days,
+      elapsed: getElapsed(),
+      r80:  parseFloat(document.getElementById('rate-80').value),
+      r100: parseFloat(document.getElementById('rate-100').value),
+      r120: parseFloat(document.getElementById('rate-120').value),
+      points: getPoints(days),
+    };
+    localStorage.setItem(LS, JSON.stringify(state));
+  }
+
+  function loadState() {
+    try {
+      const s = JSON.parse(localStorage.getItem(LS));
+      if (s) {
+        document.getElementById('etup-days').value    = s.days    || 7;
+        document.getElementById('elapsed-days').value = s.elapsed || 1;
+        document.getElementById('rate-80').value  = s.r80  || 103;
+        document.getElementById('rate-100').value = s.r100 || 130;
+        document.getElementById('rate-120').value = s.r120 || 156;
+        rebuildDays();
+        (s.points || []).forEach((p, i) => {
+          const inp = document.getElementById('day-' + (i + 1));
+          if (inp && p > 0) inp.value = p;
+        });
+      } else {
+        rebuildDays();
+      }
+    } catch(e) {
+      rebuildDays();
+    }
+    recalc();
+  }
+
+  function resetEtup() {
+    if (!confirm('Biztosan törölsz minden napi pontot? (A beállítások megmaradnak.)')) return;
+    const days = getDays();
+    for (let i = 1; i <= days; i++) {
+      const inp = document.getElementById('day-' + i);
+      if (inp) inp.value = '';
+    }
+    document.getElementById('elapsed-days').value = 1;
+    saveState();
+    recalc();
+  }
+
+  function toggleSettings() {
+    settingsOpen = !settingsOpen;
+    document.getElementById('settings-panel').style.display = settingsOpen ? 'block' : 'none';
+    document.getElementById('chevron').className = settingsOpen ? 'ti ti-chevron-down' : 'ti ti-chevron-right';
+  }
+
+  function fmt(n) {
+    const r = Math.round(n * 2) / 2;
+    return Number.isInteger(r) ? String(r) : r.toFixed(1);
+  }
+
+  function getRates() {
+    return {
+      r80:  parseFloat(document.getElementById('rate-80').value)  || 103,
+      r100: parseFloat(document.getElementById('rate-100').value) || 130,
+      r120: parseFloat(document.getElementById('rate-120').value) || 156,
+    };
+  }
+
+  function getDays()    { return Math.max(1, Math.min(10, parseInt(document.getElementById('etup-days').value)    || 7)); }
+  function getElapsed() { return Math.max(1, Math.min(getDays(), parseInt(document.getElementById('elapsed-days').value) || 1)); }
+
+  function getPoints(days) {
+    const pts = [];
+    for (let i = 1; i <= days; i++) {
+      const inp = document.getElementById('day-' + i);
+      pts.push(inp ? (parseFloat(inp.value) || 0) : 0);
+    }
+    return pts;
+  }
+
+  function rebuildDays() {
+    const days = getDays();
+    const elapsed = getElapsed();
+    const elapsedInp = document.getElementById('elapsed-days');
+    elapsedInp.max = days;
+    if (parseInt(elapsedInp.value) > days) elapsedInp.value = days;
+
+    const list = document.getElementById('days-list');
+
+    if (days < builtDays) {
+      for (let i = days + 1; i <= builtDays; i++) {
+        const row = document.getElementById('row-' + i);
+        if (row) row.remove();
+      }
+    } else if (days > builtDays) {
+      for (let i = builtDays + 1; i <= days; i++) {
+        const row = document.createElement('div');
+        row.className = 'day-row';
+        row.id = 'row-' + i;
+        row.innerHTML = `
+          <span class="day-label">${i}. nap</span>
+          <input type="number" id="day-${i}" min="0" step="0.5" placeholder="0" oninput="recalc()" style="flex:1; min-width:0;">
+          <div class="bar-bg" id="bar-bg-${i}"><div class="bar-fill" id="bar-${i}" style="width:0%;"></div></div>
+          <span class="day-pt" id="daypt-${i}">—</span>`;
+        list.appendChild(row);
+      }
+    }
+    builtDays = days;
+    recalc();
+    saveState();
+  }
+
+  function recalc() {
+    const days = getDays();
+    const elapsed = getElapsed();
+    const { r80, r100, r120 } = getRates();
+
+    const t80full  = days * r80,  t100full = days * r100, t120full = days * r120;
+    const t80el    = elapsed * r80, t100el = elapsed * r100, t120el = elapsed * r120;
+
+    document.getElementById('target-info').textContent =
+      'Teljes etup → 80%: ' + fmt(t80full) + ' pt  |  100%: ' + fmt(t100full) + ' pt  |  120%: ' + fmt(t120full) + ' pt';
+
+    const points = getPoints(days);
+    const total  = points.reduce((a, b) => a + b, 0);
+    const pct    = t100el > 0 ? (total / t100el * 100) : 0;
+    const missing100 = Math.max(0, t100el - total);
+    const missing80  = Math.max(0, t80el  - total);
+
+    let pctColor = '#378ADD';
+    if (pct >= 120) pctColor = '#D85A30';
+    else if (pct >= 100) pctColor = '#1D9E75';
+    else if (pct >= 80)  pctColor = '#639922';
+
+    document.getElementById('summary-cards').innerHTML = `
+      <div class="metric-card">
+        <div class="metric-label">Összes pont</div>
+        <div class="metric-value">${fmt(total)}</div>
+        <div class="metric-sub">${elapsed} nap alapján</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Teljesítmény</div>
+        <div class="metric-value" style="color:${pctColor}">${pct.toFixed(1)}%</div>
+        <div class="metric-sub">${elapsed} napra vetítve</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Hiányzik 100%-hoz</div>
+        <div class="metric-value">${missing100 > 0 ? fmt(missing100) : '✓'}</div>
+        <div class="metric-sub">${missing100 > 0 ? 'pont' : 'Teljesítve'}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Hiányzik 80%-hoz</div>
+        <div class="metric-value">${missing80 > 0 ? fmt(missing80) : '✓'}</div>
+        <div class="metric-sub">${missing80 > 0 ? 'pont' : 'Teljesítve'}</div>
+      </div>
+    `;
+
+    for (let i = 1; i <= days; i++) {
+      const p = points[i - 1];
+      const barW = Math.min(100, p > 0 ? (p / r120) * 100 : 0);
+      const bc = p >= r120 ? '#D85A30' : p >= r100 ? '#1D9E75' : p >= r80 ? '#639922' : '#378ADD';
+      const barEl = document.getElementById('bar-' + i);
+      const ptEl  = document.getElementById('daypt-' + i);
+      if (barEl) { barEl.style.width = barW + '%'; barEl.style.background = bc; }
+      if (ptEl)  ptEl.textContent = p > 0 ? fmt(p) + ' pt' : '—';
+    }
+
+    updateGauge(total, pct, t80el, t100el, t120el, pctColor, elapsed);
+    saveState();
+  }
+
+  function updateGauge(total, pct, t80, t100, t120, pctColor, elapsed) {
+    const maxPct = 130;
+    const clampedPct = Math.min(pct, maxPct);
+    const remaining  = Math.max(0, maxPct - clampedPct);
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById('gauge-chart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Szerzett', ''],
+        datasets: [{
+          data: [clampedPct, remaining],
+          backgroundColor: [pctColor, isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'],
+          borderWidth: 0,
+          circumference: 240,
+          rotation: -120,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      },
+      plugins: [{
+        id: 'gauge-labels',
+        afterDraw(ch) {
+          const { ctx, chartArea: { left, right, top, bottom } } = ch;
+          const cx  = (left + right) / 2;
+          const cy  = (top  + bottom) / 2 + 18;
+          const cx2 = (left + right) / 2;
+          const cy2 = (top  + bottom) / 2;
+          const meta   = ch.getDatasetMeta(0).data[0];
+          const outerR = meta.outerRadius;
+          const innerR = meta.innerRadius;
+
+          ctx.save();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          ctx.font = '500 38px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+          ctx.fillStyle = pctColor;
+          ctx.fillText(pct.toFixed(1) + '%', cx, cy - 16);
+
+          ctx.font = '400 15px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+          ctx.fillStyle = isDark ? 'rgba(200,200,190,0.7)' : 'rgba(100,100,90,0.85)';
+          ctx.fillText(fmt(total) + ' pont  ·  ' + elapsed + '. nap', cx, cy + 18);
+
+          function drawMarker(pctVal, label, color) {
+            const angle = ((-120 + (Math.min(pctVal, maxPct) / maxPct) * 240) * Math.PI) / 180;
+            const cosA = Math.cos(angle), sinA = Math.sin(angle);
+            ctx.beginPath();
+            ctx.moveTo(cx2 + (innerR - 6) * cosA, cy2 + (innerR - 6) * sinA);
+            ctx.lineTo(cx2 + (outerR + 6) * cosA, cy2 + (outerR + 6) * sinA);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            const tR = outerR + 20;
+            ctx.font = '500 11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+            ctx.fillStyle = color;
+            ctx.fillText(label, cx2 + tR * cosA, cy2 + tR * sinA);
+          }
+
+          drawMarker((t80  / t100) * 100, '80%',  '#639922');
+          drawMarker(100,                 '100%', '#1D9E75');
+          drawMarker((t120 / t100) * 100, '120%', '#D85A30');
+
+          ctx.restore();
+        }
+      }]
+    });
+  }
+
+  loadState();
+</script>
+</body>
+</html>
