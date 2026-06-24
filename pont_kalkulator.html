@@ -346,7 +346,52 @@
         maintainAspectRatio: false,
         cutout: '72%',
         plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      }
+      },
+      plugins: [{
+        id: 'threshold-markers',
+        afterDraw(ch) {
+          const { ctx } = ch;
+          const meta   = ch.getDatasetMeta(0).data[0];
+          const outerR = meta.outerRadius;
+          const innerR = meta.innerRadius;
+          const cx     = meta.x;
+          const cy     = meta.y;
+
+          function drawMarker(pctVal, label, color) {
+            const deg   = -120 + (Math.min(pctVal, maxPct) / maxPct) * 240 - 90;
+            const angle = deg * Math.PI / 180;
+            const cosA  = Math.cos(angle);
+            const sinA  = Math.sin(angle);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(cx + innerR * cosA, cy + innerR * sinA);
+            ctx.lineTo(cx + outerR * cosA, cy + outerR * sinA);
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(cx + (outerR + 2) * cosA, cy + (outerR + 2) * sinA);
+            ctx.lineTo(cx + (outerR + 14) * cosA, cy + (outerR + 14) * sinA);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            const tR = outerR + 26;
+            ctx.font = '600 11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, cx + tR * cosA, cy + tR * sinA);
+            ctx.restore();
+          }
+
+          drawMarker((t80  / t100) * 100, '80%',  '#639922');
+          drawMarker(100,                 '100%', '#1D9E75');
+          drawMarker((t120 / t100) * 100, '120%', '#D85A30');
+        }
+      }]
     });
   }
 
