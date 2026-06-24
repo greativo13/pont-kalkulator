@@ -324,37 +324,36 @@
       plugins: [{
         id: 'gauge-labels',
         afterDraw(ch) {
-          const { ctx, chartArea: { left, right, top, bottom } } = ch;
-          const cx  = (left + right) / 2;
-          const cy  = (top  + bottom) / 2 + 18;
-          const cx2 = (left + right) / 2;
-          const cy2 = (top  + bottom) / 2;
+          const { ctx } = ch;
           const meta   = ch.getDatasetMeta(0).data[0];
           const outerR = meta.outerRadius;
           const innerR = meta.innerRadius;
+          const cx2    = meta.x;
+          const cy2    = meta.y;
 
           ctx.save();
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
 
-          ctx.font = '500 38px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+          ctx.font = '500 34px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
           ctx.fillStyle = pctColor;
-          ctx.fillText(pct.toFixed(1) + '%', cx, cy - 16);
+          ctx.fillText(pct.toFixed(1) + '%', cx2, cy2 - 14);
 
-          ctx.font = '400 15px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+          ctx.font = '400 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
           ctx.fillStyle = isDark ? 'rgba(200,200,190,0.7)' : 'rgba(100,100,90,0.85)';
-          ctx.fillText(fmt(total) + ' pont  ·  ' + elapsed + '. nap', cx, cy + 18);
+          ctx.fillText(fmt(total) + ' pont · ' + elapsed + '. nap', cx2, cy2 + 16);
 
           function drawMarker(pctVal, label, color) {
-            const angle = ((-120 + (Math.min(pctVal, maxPct) / maxPct) * 240) * Math.PI) / 180;
+            const deg = -120 + (Math.min(pctVal, maxPct) / maxPct) * 240 - 90;
+            const angle = deg * Math.PI / 180;
             const cosA = Math.cos(angle), sinA = Math.sin(angle);
             ctx.beginPath();
-            ctx.moveTo(cx2 + (innerR - 6) * cosA, cy2 + (innerR - 6) * sinA);
-            ctx.lineTo(cx2 + (outerR + 6) * cosA, cy2 + (outerR + 6) * sinA);
+            ctx.moveTo(cx2 + (innerR - 4) * cosA, cy2 + (innerR - 4) * sinA);
+            ctx.lineTo(cx2 + (outerR + 4) * cosA, cy2 + (outerR + 4) * sinA);
             ctx.strokeStyle = color;
             ctx.lineWidth = 2;
             ctx.stroke();
-            const tR = outerR + 20;
+            const tR = outerR + 18;
             ctx.font = '500 11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
             ctx.fillStyle = color;
             ctx.fillText(label, cx2 + tR * cosA, cy2 + tR * sinA);
