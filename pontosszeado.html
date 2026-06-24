@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="hu" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pontgyűjtő</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --surface: #18181b;
+      --card: #18181b;
+      --card-hover: #1f1f23;
+      --border: #27272a;
+      --text: #fafafa;
+      --text-muted: #71717a;
+      --text-sub: #52525b;
+      --accent: #818cf8;
+      --accent-hover: #a5b4fc;
+      --accent-dim: #818cf815;
+      --danger: #f87171;
+      --danger-dim: #f871711a;
+      --success: #4ade80;
+      --input-bg: #09090b;
+      --radius: 10px;
+    }
+    [data-theme="soft"] {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --card: #1e293b;
+      --card-hover: #263548;
+      --border: #334155;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-sub: #64748b;
+      --accent: #818cf8;
+      --accent-hover: #a5b4fc;
+      --accent-dim: #818cf818;
+      --danger: #f87171;
+      --danger-dim: #f871711a;
+      --success: #4ade80;
+      --input-bg: #0f172a;
+    }
+    [data-theme="light"] {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --card: #ffffff;
+      --card-hover: #f8fafc;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --text-sub: #94a3b8;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-dim: #6366f112;
+      --danger: #ef4444;
+      --danger-dim: #ef444415;
+      --success: #22c55e;
+      --input-bg: #f8fafc;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 20;
+    }
+    header h1 { font-size: 1rem; font-weight: 700; color: var(--text); }
+    header span { font-size: 0.8rem; color: var(--text-muted); }
+    .tabs {
+      display: flex; background: var(--surface);
+      border-bottom: 1px solid var(--border); padding: 0 12px; gap: 2px;
+    }
+    .tab {
+      padding: 10px 14px; font-size: 0.82rem; font-weight: 500;
+      color: var(--text-muted); cursor: pointer;
+      border-bottom: 2px solid transparent; transition: all 0.15s; user-select: none;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .page { display: none; padding: 16px; max-width: 640px; margin: 0 auto; padding-bottom: 80px; }
+    .page.active { display: block; }
+    .summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 12px; text-align: center;
+    }
+    .card .label { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .card .value { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+    .card .value.big { font-size: 2rem; }
+    .category-list { display: flex; flex-direction: column; gap: 6px; }
+    .category-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 11px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: background 0.15s;
+    }
+    .category-item:hover { background: var(--card-hover); }
+    .category-item.dragging { opacity: 0.4; }
+    .category-item.drag-over { box-shadow: 0 0 0 2px var(--accent); }
+    .drag-handle { cursor: grab; color: var(--text-sub); font-size: 1.1rem; padding: 0 8px 0 0; display: none; user-select: none; touch-action: none; }
+    .edit-mode .drag-handle { display: block; }
+    .cat-info { flex: 1; min-width: 0; }
+    .cat-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cat-pts { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+    .pts-edit-wrap { display: none; align-items: center; gap: 4px; margin-top: 4px; }
+    .edit-mode .pts-edit-wrap { display: flex; }
+    .edit-mode .cat-pts { display: none; }
+    .color-palette { display: none; gap: 5px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+    .edit-mode .color-palette { display: flex; }
+    .color-swatch { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s, border-color 0.1s; flex-shrink: 0; }
+    .color-swatch:hover { transform: scale(1.2); }
+    .color-swatch.selected { border-color: var(--text); transform: scale(1.15); }
+    .color-swatch.none { background: var(--border); position: relative; }
+    .color-swatch.none::after { content: '×'; color: var(--text-muted); font-size: 12px; font-weight: 700; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+    .cat-name-static { display: block; }
+    .cat-name-input { display: none; width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9rem; font-weight: 600; padding: 3px 7px; }
+    .edit-mode .cat-name-static { display: none; }
+    .edit-mode .cat-name-input { display: block; }
+    .cat-name-input:focus { outline: none; border-color: var(--accent); }
+    .pts-input { width: 52px; background: var(--input-bg); border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); font-size: 0.82rem; padding: 3px 6px; text-align: center; }
+    .pts-input:focus { outline: none; }
+    .cat-controls { display: flex; align-items: center; gap: 8px; }
+    .btn-minus, .btn-plus { width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: transform 0.1s, background 0.15s; }
+    .btn-plus { background: var(--accent); color: #fff; }
+    .btn-plus:hover { background: var(--accent-hover); }
+    .btn-plus:active { transform: scale(0.88); }
+    .btn-minus { background: var(--border); color: var(--text-muted); }
+    .btn-minus:hover { color: var(--text); }
+    .btn-minus:active { transform: scale(0.88); }
+    .cat-count { min-width: 26px; text-align: center; font-size: 1rem; font-weight: 700; }
+    .cat-earned { min-width: 42px; text-align: right; font-size: 0.85rem; color: var(--accent); font-weight: 600; }
+    .edit-toggle-bar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+    .edit-toggle-btn { background: var(--border); color: var(--text-muted); border: none; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: all 0.15s; }
+    .edit-toggle-btn:hover { color: var(--text); }
+    .edit-toggle-btn.active { background: var(--accent); color: #fff; }
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-day { background: var(--card); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+    .history-day-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer; transition: background 0.15s; }
+    .history-day-header:hover { background: var(--card-hover); }
+    .history-day-header .date { font-weight: 600; font-size: 0.88rem; }
+    .history-day-header .total { color: var(--accent); font-weight: 700; font-size: 0.88rem; }
+    .history-day-body { padding: 8px 16px 12px; display: none; border-top: 1px solid var(--border); }
+    .history-day-body.open { display: block; }
+    .history-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding: 4px 0; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    .history-row:last-child { border-bottom: none; }
+    .clear-btn { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; padding: 10px 18px; cursor: pointer; font-size: 0.82rem; margin-top: 16px; width: 100%; transition: background 0.15s; }
+    .clear-btn:hover { background: var(--danger); color: #fff; }
+    .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 10px; z-index: 10; flex-wrap: wrap; }
+    .save-bar .today-pts { font-size: 0.9rem; color: var(--text-muted); flex: 1; min-width: 80px; }
+    .save-bar .today-pts span { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
+    .save-date { background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 10px; font-size: 0.82rem; outline: none; transition: border-color 0.15s; cursor: pointer; }
+    .save-date:focus { border-color: var(--accent); }
+    [data-theme="dark"] .save-date::-webkit-calendar-picker-indicator,
+    [data-theme="soft"] .save-date::-webkit-calendar-picker-indicator { filter: invert(0.4); }
+    .save-btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 9px 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: background 0.15s; white-space: nowrap; }
+    .save-btn:hover { background: var(--accent-hover); }
+    .date-range-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+    .date-range-box .dlabel { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .date-range-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .date-range-row input[type="date"] { background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 10px; font-size: 0.82rem; flex: 1; min-width: 120px; outline: none; transition: border-color 0.15s; }
+    .date-range-row input[type="date"]:focus { border-color: var(--accent); }
+    [data-theme="dark"] .date-range-row input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.4); }
+    .range-btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 7px 16px; cursor: pointer; font-size: 0.82rem; font-weight: 600; white-space: nowrap; transition: background 0.15s; }
+    .range-btn:hover { background: var(--accent-hover); }
+    .range-result { margin-top: 14px; display: none; }
+    .range-total { font-size: 1.8rem; font-weight: 700; color: var(--accent); text-align: center; margin-bottom: 4px; }
+    .range-days { font-size: 0.72rem; color: var(--text-sub); text-align: center; margin-bottom: 10px; }
+    .section-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+    .section-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .empty { text-align: center; color: var(--text-sub); padding: 32px; font-size: 0.85rem; }
+    #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--success); color: #fff; padding: 9px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; z-index: 99; transition: opacity 0.4s; pointer-events: none; opacity: 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⭐ Pontgyűjtő</h1>
+  <span id="todayDate"></span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('rogzit', this)">Rögzítés</div>
+  <div class="tab" onclick="showTab('osszesito', this)">Összesítő</div>
+  <div class="tab" onclick="showTab('elozmenyek', this)">Előzmények</div>
+</div>
+
+<div id="tab-rogzit" class="page active">
+  <div class="edit-toggle-bar">
+    <button class="edit-toggle-btn" id="editToggleBtn" onclick="toggleEditMode()">✏️ Szerkesztés</button>
+  </div>
+  <div class="category-list" id="categoryList"></div>
+</div>
+
+<div id="tab-osszesito" class="page">
+  <br>
+  <div class="summary-cards">
+    <div class="card"><div class="label">Ma</div><div class="value big" id="s-today">0</div></div>
+    <div class="card"><div class="label">Ezen a héten</div><div class="value" id="s-week">0</div></div>
+    <div class="card"><div class="label">Ebben a hónapban</div><div class="value" id="s-month">0</div></div>
+  </div>
+  <div class="date-range-box">
+    <div class="dlabel">Egyéni időszak</div>
+    <div class="date-range-row">
+      <input type="date" id="rangeFrom">
+      <span style="color:var(--text-sub);font-size:0.82rem;">–</span>
+      <input type="date" id="rangeTo">
+      <button class="range-btn" onclick="calcRange()">Mutat</button>
+    </div>
+    <div class="range-result" id="rangeResult">
+      <div class="range-total" id="rangeTotal">0</div>
+      <div class="range-days" id="rangeDays"></div>
+      <div id="rangeBreakdown"></div>
+    </div>
+  </div>
+  <div class="section-box">
+    <div class="section-label">Mai bontás</div>
+    <div id="todayBreakdown"></div>
+  </div>
+  <br>
+</div>
+
+<div id="tab-elozmenyek" class="page">
+  <br>
+  <div class="history-list" id="historyList"></div>
+  <button class="clear-btn" onclick="clearAll()">🗑 Összes adat törlése</button>
+  <br><br>
+</div>
+
+<div class="save-bar" id="saveBar">
+  <div class="today-pts">Pontok: <span id="livePts">0</span></div>
+  <input type="date" class="save-date" id="saveDate" onchange="onSaveDateChange()">
+  <button class="save-btn" onclick="saveDay()">Mentés ✓</button>
+</div>
+<div id="toast"></div>
+
+<script>
+  const ch = new BroadcastChannel('vb-theme');
+  ch.onmessage = e => { if (e.data && e.data.theme) applyTheme(e.data.theme); };
+  function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); }
+  applyTheme(localStorage.getItem('vb-theme') || 'dark');
+
+  const DEFAULT_CATEGORIES = [
+    { id: '4ec',      name: '4EC',               pts: 2   },
+    { id: 'notak52',  name: 'NO TAK 5+2',         pts: 2   },
+    { id: 'tak52',    name: 'TAK 5+2',             pts: 4   },
+    { id: 'szelfi',   name: 'Szelfi',              pts: 3   },
+    { id: 'eco',      name: 'ECO / ONLINE',        pts: 3   },
+    { id: 'sima',     name: 'Sima hívás',          pts: 3   },
+    { id: 'chat',     name: 'Chat',                pts: 1.5 },
+    { id: 'callproc', name: 'CALL PROC',           pts: 1   },
+    { id: 'script',   name: 'Script zárás',        pts: 1   },
+    { id: 'sikdok',   name: 'Sikeres okmány',      pts: 3   },
+    { id: 'eldok',    name: 'Elutasított okmány',  pts: 2   },
+    { id: 'push',     name: 'Push',                pts: 1   },
+    { id: 'bek',      name: 'Bekérés',             pts: 1   },
+    { id: 'email',    name: 'Email',               pts: 2   },
+  ];
+  const COLORS = [
+    { key: 'red', hex: '#ef4444' }, { key: 'orange', hex: '#f97316' },
+    { key: 'yellow', hex: '#eab308' }, { key: 'green', hex: '#22c55e' },
+    { key: 'teal', hex: '#14b8a6' }, { key: 'blue', hex: '#3b82f6' },
+    { key: 'purple', hex: '#a855f7' }, { key: 'pink', hex: '#ec4899' },
+  ];
+
+  function loadConfig() {
+    try {
+      const saved = localStorage.getItem('pontConfig');
+      if (!saved) return DEFAULT_CATEGORIES.map(c => ({ ...c }));
+      const cfg = JSON.parse(saved);
+      if (!Array.isArray(cfg) || cfg.length === 0) return DEFAULT_CATEGORIES.map(c => ({ ...c }));
+      const ids = cfg.map(c => c.id);
+      const all = [...cfg];
+      DEFAULT_CATEGORIES.forEach(d => { if (!ids.includes(d.id)) all.push({ ...d }); });
+      return all.length > 0 ? all : DEFAULT_CATEGORIES.map(c => ({ ...c }));
+    } catch(e) {
+      localStorage.removeItem('pontConfig');
+      return DEFAULT_CATEGORIES.map(c => ({ ...c }));
+    }
+  }
+  function saveConfig() {
+    localStorage.setItem('pontConfig', JSON.stringify(CATEGORIES.map(c => ({ id: c.id, name: c.name, pts: c.pts, color: c.color || null }))));
+  }
+
+  let CATEGORIES = loadConfig();
+  let counts = {};
+  CATEGORIES.forEach(c => counts[c.id] = 0);
+  let editMode = false;
+  let dragSrcIdx = null;
+
+  function todayKey() { return new Date().toISOString().slice(0, 10); }
+  function formatDate(key) { const [y, m, d] = key.split('-'); return `${y}. ${m}. ${d}.`; }
+  function totalFromCounts(c) { return CATEGORIES.reduce((sum, cat) => sum + (c[cat.id] || 0) * cat.pts, 0); }
+  function fmt(n) { const v = parseFloat(n); return Number.isInteger(v) ? v : v.toFixed(1); }
+
+  function toggleEditMode() {
+    editMode = !editMode;
+    const btn = document.getElementById('editToggleBtn');
+    const list = document.getElementById('categoryList');
+    btn.textContent = editMode ? '✓ Kész' : '✏️ Szerkesztés';
+    btn.classList.toggle('active', editMode);
+    list.classList.toggle('edit-mode', editMode);
+    if (!editMode) {
+      document.querySelectorAll('.pts-input').forEach(inp => {
+        const id = inp.dataset.id; const val = parseFloat(inp.value);
+        if (!isNaN(val) && val >= 0) { const cat = CATEGORIES.find(c => c.id === id); if (cat) cat.pts = val; }
+      });
+      document.querySelectorAll('.cat-name-input').forEach(inp => {
+        const id = inp.dataset.id; const val = inp.value.trim();
+        if (val) { const cat = CATEGORIES.find(c => c.id === id); if (cat) cat.name = val; }
+      });
+      saveConfig(); buildCategoryList(); updateCategoryUI();
+    }
+  }
+
+  function buildCategoryList() {
+    const el = document.getElementById('categoryList');
+    el.innerHTML = '';
+    if (editMode) el.classList.add('edit-mode'); else el.classList.remove('edit-mode');
+    CATEGORIES.forEach((cat, idx) => {
+      const div = document.createElement('div');
+      div.className = 'category-item'; div.dataset.idx = idx; div.draggable = true;
+      const color = cat.color ? COLORS.find(c => c.key === cat.color) : null;
+      if (color) { div.style.borderColor = color.hex + '60'; div.style.background = color.hex + '10'; }
+      const swatchesHtml = `
+        <div class="color-swatch none ${!cat.color ? 'selected' : ''}" data-color=""></div>
+        ${COLORS.map(c => `<div class="color-swatch ${cat.color === c.key ? 'selected' : ''}" data-color="${c.key}" style="background:${c.hex}"></div>`).join('')}`;
+      div.innerHTML = `
+        <div class="drag-handle">⠿</div>
+        <div class="cat-info">
+          <span class="cat-name cat-name-static">${cat.name}</span>
+          <input class="cat-name-input" type="text" value="${cat.name}" data-id="${cat.id}">
+          <div class="cat-pts">${fmt(cat.pts)} pont / db</div>
+          <div class="pts-edit-wrap">
+            <span style="font-size:0.72rem;color:var(--text-muted);">Pont:</span>
+            <input class="pts-input" type="number" min="0" step="0.5" value="${cat.pts}" data-id="${cat.id}">
+          </div>
+          <div class="color-palette">${swatchesHtml}</div>
+        </div>
+        <div class="cat-controls">
+          <button class="btn-minus" onclick="adjust('${cat.id}', -1)">−</button>
+          <div class="cat-count" id="count-${cat.id}">0</div>
+          <button class="btn-plus" onclick="adjust('${cat.id}', 1)">+</button>
+          <div class="cat-earned" id="earned-${cat.id}">0 p</div>
+        </div>`;
+      div.querySelectorAll('.color-swatch').forEach(sw => {
+        sw.addEventListener('click', () => {
+          const chosen = sw.dataset.color || null; cat.color = chosen;
+          div.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+          sw.classList.add('selected');
+          const col = chosen ? COLORS.find(c => c.key === chosen) : null;
+          div.style.borderColor = col ? col.hex + '60' : ''; div.style.background = col ? col.hex + '10' : '';
+        });
+      });
+      div.addEventListener('dragstart', e => { dragSrcIdx = idx; setTimeout(() => div.classList.add('dragging'), 0); e.dataTransfer.effectAllowed = 'move'; });
+      div.addEventListener('dragend', () => div.classList.remove('dragging'));
+      div.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; div.classList.add('drag-over'); });
+      div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+      div.addEventListener('drop', e => {
+        e.preventDefault(); div.classList.remove('drag-over');
+        if (dragSrcIdx === null || dragSrcIdx === idx) return;
+        const moved = CATEGORIES.splice(dragSrcIdx, 1)[0]; CATEGORIES.splice(idx, 0, moved);
+        dragSrcIdx = null; saveConfig(); buildCategoryList(); updateCategoryUI();
+      });
+      el.appendChild(div);
+    });
+  }
+
+  function updateCategoryUI() {
+    let total = 0;
+    CATEGORIES.forEach(cat => {
+      const c = counts[cat.id] || 0; const e = c * cat.pts;
+      const countEl = document.getElementById('count-' + cat.id);
+      const earnedEl = document.getElementById('earned-' + cat.id);
+      if (countEl) countEl.textContent = c;
+      if (earnedEl) earnedEl.textContent = fmt(e) + ' p';
+      total += e;
+    });
+    document.getElementById('livePts').textContent = fmt(total);
+  }
+
+  function adjust(id, delta) { counts[id] = Math.max(0, (counts[id] || 0) + delta); updateCategoryUI(); }
+  function getHistory() { return JSON.parse(localStorage.getItem('pontHistory') || '{}'); }
+  function saveHistory(h) { localStorage.setItem('pontHistory', JSON.stringify(h)); }
+
+  function getSelectedDate() {
+    return document.getElementById('saveDate').value || todayKey();
+  }
+
+  function loadForDate(key) {
+    const h = getHistory();
+    if (h[key]) counts = { ...h[key] }; else CATEGORIES.forEach(c => counts[c.id] = 0);
+    updateCategoryUI();
+  }
+
+  function onSaveDateChange() {
+    loadForDate(getSelectedDate());
+  }
+
+  function loadToday() {
+    const key = todayKey();
+    document.getElementById('saveDate').value = key;
+    loadForDate(key);
+  }
+
+  function saveDay() {
+    const h = getHistory();
+    h[getSelectedDate()] = { ...counts };
+    saveHistory(h); showToast('Mentve! ✓'); updateSummary(); updateHistory();
+  }
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.opacity = '1';
+    setTimeout(() => t.style.opacity = '0', 1800);
+  }
+
+  function calcRange() {
+    const from = document.getElementById('rangeFrom').value;
+    const to   = document.getElementById('rangeTo').value;
+    if (!from || !to || from > to) { alert('Adj meg érvényes időszakot!'); return; }
+    const h = getHistory(); const today = todayKey();
+    let total = 0, dayCount = 0; const catTotals = {};
+    const cur = new Date(from), end = new Date(to);
+    while (cur <= end) {
+      const k = cur.toISOString().slice(0, 10);
+      let dc = k === today ? counts : (h[k] || null);
+      if (dc) {
+        dayCount++;
+        CATEGORIES.forEach(cat => {
+          const c = dc[cat.id] || 0;
+          if (c > 0) { catTotals[cat.id] = (catTotals[cat.id] || 0) + c; total += c * cat.pts; }
+        });
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    document.getElementById('rangeTotal').textContent = fmt(total) + ' pont';
+    document.getElementById('rangeDays').textContent  = dayCount + ' nap adata';
+    const bd = document.getElementById('rangeBreakdown'); bd.innerHTML = '';
+    CATEGORIES.forEach(cat => {
+      const c = catTotals[cat.id] || 0;
+      if (c > 0) {
+        const row = document.createElement('div'); row.className = 'history-row';
+        row.innerHTML = `<span>${cat.name} × ${c}</span><span>${fmt(c * cat.pts)} p</span>`;
+        bd.appendChild(row);
+      }
+    });
+    if (!Object.keys(catTotals).length) bd.innerHTML = '<div class="empty">Nincs adat ebben az időszakban.</div>';
+    document.getElementById('rangeResult').style.display = 'block';
+  }
+
+  function updateSummary() {
+    const h = getHistory(); const today = todayKey();
+    const todayTotal = totalFromCounts(counts);
+    document.getElementById('s-today').textContent = fmt(todayTotal);
+    const now = new Date(); const dow = now.getDay() === 0 ? 6 : now.getDay() - 1;
+    let weekTotal = 0;
+    for (let i = 0; i <= dow; i++) {
+      const d = new Date(now); d.setDate(now.getDate() - i);
+      const k = d.toISOString().slice(0, 10);
+      weekTotal += k === today ? todayTotal : (h[k] ? totalFromCounts(h[k]) : 0);
+    }
+    document.getElementById('s-week').textContent = fmt(weekTotal);
+    const ym = today.slice(0, 7); let monthTotal = todayTotal;
+    Object.keys(h).forEach(k => { if (k.startsWith(ym) && k !== today) monthTotal += totalFromCounts(h[k]); });
+    document.getElementById('s-month').textContent = fmt(monthTotal);
+    const bd = document.getElementById('todayBreakdown'); bd.innerHTML = '';
+    let hasAny = false;
+    CATEGORIES.forEach(cat => {
+      const c = counts[cat.id] || 0;
+      if (c > 0) {
+        hasAny = true;
+        const row = document.createElement('div'); row.className = 'history-row';
+        row.innerHTML = `<span>${cat.name} × ${c}</span><span>${fmt(c * cat.pts)} p</span>`;
+        bd.appendChild(row);
+      }
+    });
+    if (!hasAny) bd.innerHTML = '<div class="empty">Még nincs mai adat.</div>';
+  }
+
+  function updateHistory() {
+    const h = getHistory(); const el = document.getElementById('historyList'); el.innerHTML = '';
+    const keys = Object.keys(h).sort().reverse();
+    if (!keys.length) { el.innerHTML = '<div class="empty">Még nincs mentett nap.</div>'; return; }
+    keys.forEach(key => {
+      const dc = h[key]; const total = totalFromCounts(dc);
+      const div = document.createElement('div'); div.className = 'history-day';
+      const body = document.createElement('div'); body.className = 'history-day-body';
+      CATEGORIES.forEach(cat => {
+        const c = dc[cat.id] || 0;
+        if (c > 0) {
+          const row = document.createElement('div'); row.className = 'history-row';
+          row.innerHTML = `<span>${cat.name} × ${c}</span><span>${fmt(c * cat.pts)} p</span>`;
+          body.appendChild(row);
+        }
+      });
+      const hdr = document.createElement('div'); hdr.className = 'history-day-header';
+      hdr.innerHTML = `<span class="date">${formatDate(key)}</span><span class="total">${fmt(total)} pont</span>`;
+      hdr.onclick = () => body.classList.toggle('open');
+      div.appendChild(hdr); div.appendChild(body); el.appendChild(div);
+    });
+  }
+
+  function clearAll() {
+    if (!confirm('Biztosan törlöd az összes adatot?')) return;
+    localStorage.removeItem('pontHistory');
+    CATEGORIES.forEach(c => counts[c.id] = 0);
+    updateCategoryUI(); updateSummary(); updateHistory();
+  }
+
+  function showTab(id, tabEl) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    tabEl.classList.add('active');
+    document.getElementById('saveBar').style.display = id === 'rogzit' ? 'flex' : 'none';
+    if (id === 'osszesito') {
+      updateSummary();
+      const t = todayKey();
+      if (!document.getElementById('rangeFrom').value) {
+        document.getElementById('rangeFrom').value = t.slice(0, 7) + '-01';
+        document.getElementById('rangeTo').value   = t;
+      }
+    }
+    if (id === 'elozmenyek') updateHistory();
+  }
+
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('hu-HU', { year:'numeric', month:'long', day:'numeric' });
+  buildCategoryList();
+  loadToday();
+</script>
+</body>
+</html>
