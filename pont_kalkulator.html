@@ -69,11 +69,11 @@
       <div class="settings-grid">
         <div class="setting-item">
           <label>Etup hossza (nap)</label>
-          <input type="number" id="etup-days" min="1" max="10" value="7" step="1" oninput="rebuildDays()">
+          <input type="number" id="etup-days" min="1" value="7" step="1" oninput="rebuildDays()">
         </div>
         <div class="setting-item">
           <label>Eltelt napok</label>
-          <input type="number" id="elapsed-days" min="1" max="10" value="1" step="1" oninput="recalc()">
+          <input type="number" id="elapsed-days" min="1" value="1" step="1" oninput="recalc()">
         </div>
         <div class="setting-item">
           <label><span class="dot" style="background:#639922"></span> 80% – pont/nap</label>
@@ -191,8 +191,8 @@
     };
   }
 
-  function getDays()    { return Math.max(1, Math.min(10, parseInt(document.getElementById('etup-days').value)    || 7)); }
-  function getElapsed() { return Math.max(1, Math.min(getDays(), parseInt(document.getElementById('elapsed-days').value) || 1)); }
+  function getDays()    { return Math.max(1, parseInt(document.getElementById('etup-days').value)    || 7); }
+  function getElapsed() { return Math.max(1, parseInt(document.getElementById('elapsed-days').value) || 1); }
 
   function getPoints(days) {
     const pts = [];
