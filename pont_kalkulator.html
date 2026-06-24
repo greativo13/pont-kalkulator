@@ -1,69 +1,136 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="hu" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Etup Pont Kalkulátor</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <style>
+    :root {
+      --bg: #09090b;
+      --surface: #18181b;
+      --card: #18181b;
+      --border: #27272a;
+      --text: #fafafa;
+      --text-muted: #71717a;
+      --text-sub: #52525b;
+      --accent: #818cf8;
+      --input-bg: #09090b;
+      --bar-bg: #27272a;
+      --radius: 10px;
+    }
+    [data-theme="soft"] {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-sub: #64748b;
+      --accent: #818cf8;
+      --input-bg: #0f172a;
+      --bar-bg: #334155;
+    }
+    [data-theme="light"] {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --text-sub: #94a3b8;
+      --accent: #6366f1;
+      --input-bg: #f8fafc;
+      --bar-bg: #e2e8f0;
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f4f4f2;
-      color: #1a1a1a;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      padding: 2rem 1rem;
+      padding: 20px 16px 40px;
+      transition: background 0.2s, color 0.2s;
     }
-    @media (prefers-color-scheme: dark) {
-      body { background: #1c1c1a; color: #e8e8e4; }
-      .card { background: #2a2a28; border-color: #3a3a38; }
-      .metric-card { background: #242422; }
-      input[type="number"] { background: #2a2a28; color: #e8e8e4; border-color: #3a3a38; }
-      input[type="number"]:focus { border-color: #888; }
-      .bar-bg { background: #3a3a38; }
-      .settings-toggle { color: #b0b0aa; }
-      .day-label, .day-pt { color: #888; }
-      .target-info, .section-title { color: #888; }
+    .container { max-width: 680px; margin: 0 auto; }
+    h1 {
+      font-size: 1.1rem; font-weight: 600; color: var(--text);
+      margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
     }
-    .container { max-width: 720px; margin: 0 auto; }
-    h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; }
-    .card { background: #fff; border: 0.5px solid #d8d8d4; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
-    .settings-toggle { font-size: 14px; font-weight: 500; color: #555; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-    .setting-item { display: flex; flex-direction: column; gap: 5px; }
-    .setting-item label { font-size: 12px; color: #777; display: flex; align-items: center; gap: 5px; }
-    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
-    input[type="number"] { width: 100%; padding: 7px 10px; font-size: 14px; border: 0.5px solid #ccc; border-radius: 8px; outline: none; background: #fff; color: #1a1a1a; transition: border-color 0.15s; }
-    input[type="number"]:focus { border-color: #555; }
-    .target-info { font-size: 12px; color: #888; margin-top: 10px; }
-    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1rem; }
-    .metric-card { background: #f4f4f2; border-radius: 8px; padding: 12px 14px; }
-    @media (prefers-color-scheme: dark) { .metric-card { background: #242422; } }
-    .metric-label { font-size: 12px; color: #888; margin-bottom: 4px; }
-    .metric-value { font-size: 22px; font-weight: 500; }
-    .metric-sub { font-size: 12px; color: #888; margin-top: 2px; }
-    .sep { border: none; border-top: 0.5px solid #d8d8d4; margin: 1.25rem 0; }
-    .section-title { font-size: 13px; font-weight: 500; color: #666; margin-bottom: 12px; }
-    .chart-wrap { position: relative; width: 100%; height: 300px; }
-    .day-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .day-label { font-size: 13px; color: #777; min-width: 50px; }
-    .bar-bg { flex: 2; background: #eeeee8; border-radius: 5px; height: 8px; overflow: hidden; min-width: 0; }
-    .bar-fill { height: 100%; border-radius: 5px; transition: width 0.3s; }
-    .day-pt { font-size: 12px; color: #888; min-width: 58px; text-align: right; }
-    footer { text-align: center; font-size: 12px; color: #aaa; margin-top: 2rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .settings-toggle {
+      font-size: 0.8rem; font-weight: 600; color: var(--text-muted);
+      cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 6px; margin-bottom: 14px;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+    .setting-item { display: flex; flex-direction: column; gap: 4px; }
+    .setting-item label { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; }
+    input[type="number"] {
+      padding: 7px 10px; font-size: 13px;
+      border: 1px solid var(--border); border-radius: 7px; outline: none;
+      background: var(--input-bg); color: var(--text);
+      transition: border-color 0.15s;
+    }
+    .setting-item input[type="number"] { width: 100%; }
+    input[type="number"]:focus { border-color: var(--accent); }
+    input[type="date"] {
+      padding: 7px 10px; font-size: 13px;
+      border: 1px solid var(--border); border-radius: 7px; outline: none;
+      background: var(--input-bg); color: var(--text);
+      transition: border-color 0.15s; width: 148px; flex-shrink: 0;
+    }
+    input[type="date"]:focus { border-color: var(--accent); }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: var(--cal-filter, invert(0.4));
+      cursor: pointer;
+    }
+    [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator { filter: none; }
+    .target-info { font-size: 11px; color: var(--text-sub); margin-top: 10px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+    @media (max-width: 500px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+    .metric-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 12px; text-align: center;
+    }
+    .metric-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+    .metric-value { font-size: 1.5rem; font-weight: 700; }
+    .metric-sub { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+    .section-title { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .day-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .day-label { font-size: 12px; color: var(--text-muted); min-width: 48px; flex-shrink: 0; }
+    .day-num { padding: 7px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 7px; outline: none; background: var(--input-bg); color: var(--text); transition: border-color 0.15s; width: 80px; flex-shrink: 0; }
+    .day-num:focus { border-color: var(--accent); }
+    .bar-bg { flex: 1; background: var(--bar-bg); border-radius: 4px; height: 6px; overflow: hidden; min-width: 0; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.35s; }
+    .day-pt { font-size: 12px; color: var(--text-muted); min-width: 52px; text-align: right; flex-shrink: 0; }
+    .reset-btn {
+      padding: 9px 24px; font-size: 13px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: transparent; cursor: pointer; color: #f87171;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .reset-btn:hover { background: #f871711a; border-color: #f87171; }
+    .gauge-pct { font-size: 2.5rem; font-weight: 700; line-height: 1; }
+    .gauge-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+    footer { text-align: center; font-size: 11px; color: var(--text-sub); margin-top: 28px; }
   </style>
 </head>
 <body>
 <div class="container">
 
-  <h1><i class="ti ti-chart-bar" aria-hidden="true"></i> Etup Pont Kalkulátor</h1>
+  <h1>📊 Etup Pont Kalkulátor</h1>
 
   <div class="card">
     <div class="settings-toggle" onclick="toggleSettings()">
-      <i class="ti ti-settings" aria-hidden="true"></i>
-      Beállítások
-      <i class="ti ti-chevron-down" id="chevron" aria-hidden="true"></i>
+      <span id="chevron">▾</span> Beállítások
     </div>
     <div id="settings-panel">
       <div class="settings-grid">
@@ -76,15 +143,15 @@
           <input type="number" id="elapsed-days" min="1" value="1" step="1" oninput="recalc()">
         </div>
         <div class="setting-item">
-          <label><span class="dot" style="background:#639922"></span> 80% – pont/nap</label>
+          <label><span class="dot" style="background:#65a30d"></span> 80% – pont/nap</label>
           <input type="number" id="rate-80" min="0.5" value="103" step="0.5" oninput="recalc()">
         </div>
         <div class="setting-item">
-          <label><span class="dot" style="background:#1D9E75"></span> 100% – pont/nap</label>
+          <label><span class="dot" style="background:#0d9488"></span> 100% – pont/nap</label>
           <input type="number" id="rate-100" min="0.5" value="130" step="0.5" oninput="recalc()">
         </div>
         <div class="setting-item">
-          <label><span class="dot" style="background:#D85A30"></span> 120% – pont/nap</label>
+          <label><span class="dot" style="background:#ea580c"></span> 120% – pont/nap</label>
           <input type="number" id="rate-120" min="0.5" value="156" step="0.5" oninput="recalc()">
         </div>
       </div>
@@ -95,7 +162,7 @@
   <div class="metrics-grid" id="summary-cards"></div>
 
   <div class="card">
-    <div class="section-title">Összesített teljesítmény (eltelt napok alapján)</div>
+    <div class="section-title">Összesített teljesítmény</div>
     <div id="gauge-wrap"></div>
   </div>
 
@@ -105,13 +172,10 @@
   </div>
 
   <div style="text-align:center; margin-bottom: 1rem;">
-    <button onclick="resetEtup()" style="padding: 10px 28px; font-size: 14px; border: 0.5px solid #ccc; border-radius: 8px; background: transparent; cursor: pointer; color: #c0392b;">
-      <i class="ti ti-refresh" aria-hidden="true"></i> Új etup indítása
-    </button>
+    <button onclick="resetEtup()" class="reset-btn">🔄 Új etup indítása</button>
   </div>
 
-  <footer>Pont Kalkulátor – adatok automatikusan mentve</footer>
-
+  <footer>Adatok automatikusan mentve</footer>
 </div>
 
 <script>
@@ -121,16 +185,69 @@
   let loading = false;
   const LS = 'etup_kalkulator';
 
+  // Theme sync
+  const ch = new BroadcastChannel('vb-theme');
+  ch.onmessage = e => { if (e.data && e.data.theme) applyTheme(e.data.theme); };
+  function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); }
+  applyTheme(localStorage.getItem('vb-theme') || 'dark');
+
+  const DEFAULT_CATEGORIES = [
+    { id: '4ec', pts: 2 }, { id: 'notak52', pts: 2 }, { id: 'tak52', pts: 4 },
+    { id: 'szelfi', pts: 3 }, { id: 'eco', pts: 3 }, { id: 'sima', pts: 3 },
+    { id: 'chat', pts: 1.5 }, { id: 'callproc', pts: 1 }, { id: 'script', pts: 1 },
+    { id: 'sikdok', pts: 3 }, { id: 'eldok', pts: 2 }, { id: 'push', pts: 1 },
+    { id: 'bek', pts: 1 }, { id: 'email', pts: 2 },
+  ];
+
+  function getPontCategories() {
+    try {
+      const cfg = JSON.parse(localStorage.getItem('pontConfig'));
+      if (Array.isArray(cfg) && cfg.length) return cfg;
+    } catch(e) {}
+    return DEFAULT_CATEGORIES;
+  }
+
+  function calcDayTotal(dayCounts) {
+    if (!dayCounts) return null;
+    const cats = getPontCategories();
+    let total = 0;
+    cats.forEach(c => { total += (dayCounts[c.id] || 0) * c.pts; });
+    return total;
+  }
+
+  function syncFromHistory(i) {
+    const dateInp = document.getElementById('date-' + i);
+    const ptInp   = document.getElementById('day-' + i);
+    if (!dateInp || !ptInp) return;
+    const dateKey = dateInp.value;
+    if (!dateKey) return;
+    try {
+      const history = JSON.parse(localStorage.getItem('pontHistory') || '{}');
+      const total = calcDayTotal(history[dateKey]);
+      ptInp.value = (total !== null && total > 0) ? total : '';
+    } catch(e) { ptInp.value = ''; }
+    recalc();
+  }
+
+  function syncAllFromHistory() {
+    const days = getDays();
+    for (let i = 1; i <= days; i++) syncFromHistory(i);
+  }
+
   function saveState() {
     if (loading) return;
     const days = getDays();
+    const dates = [];
+    for (let i = 1; i <= days; i++) {
+      const d = document.getElementById('date-' + i);
+      dates.push(d ? d.value : '');
+    }
     const state = {
-      days,
-      elapsed: getElapsed(),
+      days, elapsed: getElapsed(),
       r80:  parseFloat(document.getElementById('rate-80').value),
       r100: parseFloat(document.getElementById('rate-100').value),
       r120: parseFloat(document.getElementById('rate-120').value),
-      points: getPoints(days),
+      points: getPoints(days), dates,
     };
     localStorage.setItem(LS, JSON.stringify(state));
   }
@@ -146,16 +263,17 @@
         document.getElementById('rate-100').value = s.r100 || 130;
         document.getElementById('rate-120').value = s.r120 || 156;
         rebuildDays();
+        (s.dates || []).forEach((d, i) => {
+          const di = document.getElementById('date-' + (i + 1));
+          if (di && d) di.value = d;
+        });
         (s.points || []).forEach((p, i) => {
           const inp = document.getElementById('day-' + (i + 1));
           if (inp && p > 0) inp.value = p;
         });
-      } else {
-        rebuildDays();
-      }
-    } catch(e) {
-      rebuildDays();
-    }
+        syncAllFromHistory();
+      } else { rebuildDays(); }
+    } catch(e) { rebuildDays(); }
     loading = false;
     recalc();
   }
@@ -166,16 +284,17 @@
     for (let i = 1; i <= days; i++) {
       const inp = document.getElementById('day-' + i);
       if (inp) inp.value = '';
+      const di = document.getElementById('date-' + i);
+      if (di) di.value = '';
     }
     document.getElementById('elapsed-days').value = 1;
-    saveState();
-    recalc();
+    saveState(); recalc();
   }
 
   function toggleSettings() {
     settingsOpen = !settingsOpen;
     document.getElementById('settings-panel').style.display = settingsOpen ? 'block' : 'none';
-    document.getElementById('chevron').className = settingsOpen ? 'ti ti-chevron-down' : 'ti ti-chevron-right';
+    document.getElementById('chevron').textContent = settingsOpen ? '▾' : '▸';
   }
 
   function fmt(n) {
@@ -205,13 +324,10 @@
 
   function rebuildDays() {
     const days = getDays();
-    const elapsed = getElapsed();
     const elapsedInp = document.getElementById('elapsed-days');
     elapsedInp.max = days;
     if (parseInt(elapsedInp.value) > days) elapsedInp.value = days;
-
     const list = document.getElementById('days-list');
-
     if (days < builtDays) {
       for (let i = days + 1; i <= builtDays; i++) {
         const row = document.getElementById('row-' + i);
@@ -224,15 +340,22 @@
         row.id = 'row-' + i;
         row.innerHTML = `
           <span class="day-label">${i}. nap</span>
-          <input type="number" id="day-${i}" min="0" step="0.5" placeholder="0" oninput="recalc()" style="flex:1; min-width:0;">
+          <input type="date" id="date-${i}" oninput="syncFromHistory(${i}); saveState();">
+          <input type="number" class="day-num" id="day-${i}" min="0" step="0.5" placeholder="0" oninput="recalc()">
           <div class="bar-bg" id="bar-bg-${i}"><div class="bar-fill" id="bar-${i}" style="width:0%;"></div></div>
           <span class="day-pt" id="daypt-${i}">—</span>`;
         list.appendChild(row);
       }
     }
     builtDays = days;
-    recalc();
-    saveState();
+    recalc(); saveState();
+  }
+
+  function pctColor(pct) {
+    if (pct >= 120) return '#ea580c';
+    if (pct >= 100) return '#0d9488';
+    if (pct >= 80)  return '#65a30d';
+    return '#818cf8';
   }
 
   function recalc() {
@@ -240,7 +363,7 @@
     const elapsed = getElapsed();
     const { r80, r100, r120 } = getRates();
 
-    const t80full  = days * r80,  t100full = days * r100, t120full = days * r120;
+    const t80full  = days * r80, t100full = days * r100, t120full = days * r120;
     const t80el    = elapsed * r80, t100el = elapsed * r100, t120el = elapsed * r120;
 
     document.getElementById('target-info').textContent =
@@ -251,88 +374,73 @@
     const pct    = t100el > 0 ? (total / t100el * 100) : 0;
     const missing100 = Math.max(0, t100el - total);
     const missing80  = Math.max(0, t80el  - total);
-
-    let pctColor = '#378ADD';
-    if (pct >= 120) pctColor = '#D85A30';
-    else if (pct >= 100) pctColor = '#1D9E75';
-    else if (pct >= 80)  pctColor = '#639922';
+    const col = pctColor(pct);
 
     document.getElementById('summary-cards').innerHTML = `
       <div class="metric-card">
         <div class="metric-label">Összes pont</div>
-        <div class="metric-value">${fmt(total)}</div>
-        <div class="metric-sub">${elapsed} nap alapján</div>
+        <div class="metric-value" style="color:var(--accent)">${fmt(total)}</div>
+        <div class="metric-sub">${elapsed} nap</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">Teljesítmény</div>
-        <div class="metric-value" style="color:${pctColor}">${pct.toFixed(1)}%</div>
-        <div class="metric-sub">${elapsed} napra vetítve</div>
+        <div class="metric-value" style="color:${col}">${pct.toFixed(1)}%</div>
+        <div class="metric-sub">${elapsed} napra</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Hiányzik 100%-hoz</div>
-        <div class="metric-value">${missing100 > 0 ? fmt(missing100) : '✓'}</div>
+        <div class="metric-label">Hiány 100%</div>
+        <div class="metric-value" style="color:var(--accent)">${missing100 > 0 ? fmt(missing100) : '✓'}</div>
         <div class="metric-sub">${missing100 > 0 ? 'pont' : 'Teljesítve'}</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Hiányzik 80%-hoz</div>
-        <div class="metric-value">${missing80 > 0 ? fmt(missing80) : '✓'}</div>
+        <div class="metric-label">Hiány 80%</div>
+        <div class="metric-value" style="color:var(--accent)">${missing80 > 0 ? fmt(missing80) : '✓'}</div>
         <div class="metric-sub">${missing80 > 0 ? 'pont' : 'Teljesítve'}</div>
-      </div>
-    `;
+      </div>`;
 
     for (let i = 1; i <= days; i++) {
       const p = points[i - 1];
       const barW = Math.min(100, p > 0 ? (p / r120) * 100 : 0);
-      const bc = p >= r120 ? '#D85A30' : p >= r100 ? '#1D9E75' : p >= r80 ? '#639922' : '#378ADD';
+      const bc = p >= r120 ? '#ea580c' : p >= r100 ? '#0d9488' : p >= r80 ? '#65a30d' : '#818cf8';
       const barEl = document.getElementById('bar-' + i);
       const ptEl  = document.getElementById('daypt-' + i);
       if (barEl) { barEl.style.width = barW + '%'; barEl.style.background = bc; }
       if (ptEl)  ptEl.textContent = p > 0 ? fmt(p) + ' pt' : '—';
     }
 
-    updateGauge(total, pct, t80el, t100el, t120el, pctColor, elapsed);
+    updateGauge(total, pct, t80el, t100el, t120el, col, elapsed);
     saveState();
   }
 
-  function updateGauge(total, pct, t80, t100, t120, pctColor, elapsed) {
+  function updateGauge(total, pct, t80, t100, t120, col, elapsed) {
     const maxPct = 130;
     const pos80  = (80  / maxPct) * 100;
     const pos100 = (100 / maxPct) * 100;
     const pos120 = (120 / maxPct) * 100;
     const fillW  = Math.min(pct / maxPct * 100, 100);
 
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const bgBar  = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-
     document.getElementById('gauge-wrap').innerHTML = `
-      <div style="text-align:center; margin-bottom:16px;">
-        <div style="font-size:40px; font-weight:500; color:${pctColor}; line-height:1;">${pct.toFixed(1)}%</div>
-        <div style="font-size:13px; color:#888; margin-top:6px;">${fmt(total)} pont &nbsp;·&nbsp; ${elapsed}. nap</div>
+      <div style="text-align:center; margin-bottom:20px;">
+        <div class="gauge-pct" style="color:${col}">${pct.toFixed(1)}%</div>
+        <div class="gauge-sub">${fmt(total)} pont · ${elapsed}. nap</div>
       </div>
-
-      <div style="position:relative; margin: 0 8px 32px;">
-
-        <div style="height:22px; background:${bgBar}; border-radius:11px; overflow:hidden;">
-          <div style="height:100%; width:${fillW}%; background:${pctColor}; border-radius:11px; transition:width 0.4s;"></div>
+      <div style="position:relative; margin: 0 8px 36px;">
+        <div style="height:16px; background:var(--bar-bg); border-radius:8px; overflow:hidden;">
+          <div style="height:100%; width:${fillW}%; background:${col}; border-radius:8px; transition:width 0.4s;"></div>
         </div>
-
-        <div style="position:absolute; left:${pos80}%; top:-1px; transform:translateX(-50%);">
-          <div style="width:3px; height:24px; background:white; border-radius:2px; margin:0 auto;"></div>
-          <div style="font-size:11px; font-weight:600; color:#639922; text-align:center; margin-top:4px; white-space:nowrap;">80%<br><span style="font-weight:400;">${fmt(t80)} pt</span></div>
+        <div style="position:absolute; left:${pos80}%; top:0; transform:translateX(-50%);">
+          <div style="width:2px; height:16px; background:var(--bg); margin:0 auto;"></div>
+          <div style="font-size:10px; font-weight:600; color:#65a30d; text-align:center; margin-top:6px; white-space:nowrap;">80%<br><span style="font-weight:400;color:var(--text-muted)">${fmt(t80)} pt</span></div>
         </div>
-
-        <div style="position:absolute; left:${pos100}%; top:-1px; transform:translateX(-50%);">
-          <div style="width:3px; height:24px; background:white; border-radius:2px; margin:0 auto;"></div>
-          <div style="font-size:11px; font-weight:600; color:#1D9E75; text-align:center; margin-top:4px; white-space:nowrap;">100%<br><span style="font-weight:400;">${fmt(t100)} pt</span></div>
+        <div style="position:absolute; left:${pos100}%; top:0; transform:translateX(-50%);">
+          <div style="width:2px; height:16px; background:var(--bg); margin:0 auto;"></div>
+          <div style="font-size:10px; font-weight:600; color:#0d9488; text-align:center; margin-top:6px; white-space:nowrap;">100%<br><span style="font-weight:400;color:var(--text-muted)">${fmt(t100)} pt</span></div>
         </div>
-
-        <div style="position:absolute; left:${pos120}%; top:-1px; transform:translateX(-50%);">
-          <div style="width:3px; height:24px; background:white; border-radius:2px; margin:0 auto;"></div>
-          <div style="font-size:11px; font-weight:600; color:#D85A30; text-align:center; margin-top:4px; white-space:nowrap;">120%<br><span style="font-weight:400;">${fmt(t120)} pt</span></div>
+        <div style="position:absolute; left:${pos120}%; top:0; transform:translateX(-50%);">
+          <div style="width:2px; height:16px; background:var(--bg); margin:0 auto;"></div>
+          <div style="font-size:10px; font-weight:600; color:#ea580c; text-align:center; margin-top:6px; white-space:nowrap;">120%<br><span style="font-weight:400;color:var(--text-muted)">${fmt(t120)} pt</span></div>
         </div>
-
-      </div>
-    `;
+      </div>`;
   }
 
   loadState();
