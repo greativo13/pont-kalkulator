@@ -120,9 +120,11 @@
   let chart = null;
   let settingsOpen = true;
   let builtDays = 0;
+  let loading = false;
   const LS = 'etup_kalkulator';
 
   function saveState() {
+    if (loading) return;
     const days = getDays();
     const state = {
       days,
@@ -136,6 +138,7 @@
   }
 
   function loadState() {
+    loading = true;
     try {
       const s = JSON.parse(localStorage.getItem(LS));
       if (s) {
@@ -155,6 +158,7 @@
     } catch(e) {
       rebuildDays();
     }
+    loading = false;
     recalc();
   }
 
