@@ -598,10 +598,12 @@ function showToast(msg) {
     if(!di||!pi||!di.value) return;
     try {
       const h=JSON.parse(localStorage.getItem('pontHistory')||'{}');
-      const t=pkDayTotal(h[di.value]);
-      pi.value=(t!==null&&t>0)?t:'';
-    } catch(e){pi.value='';}
-    pkRecalc();
+      if(h[di.value] !== undefined) {
+        const t=pkDayTotal(h[di.value]);
+        pi.value=t>0?t:'';
+        pkRecalc();
+      }
+    } catch(e){}
   }
 
   function pkSyncAll() { for(let i=1;i<=pkBuiltDays;i++) pkSyncDay(i); }
