@@ -2,7 +2,7 @@
 <html lang="hu" data-theme="soft">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>VB App</title>
   <style>
     /* ── TÉMÁK ── */
@@ -321,13 +321,29 @@ applyTheme(currentTheme);
 // ══════════════════════════════════════════
 // APP VÁLTÁS
 // ══════════════════════════════════════════
-function switchApp(id, tab) {
+const APP_ORDER = ['pg', 'pk'];
+function switchApp(id, tabEl) {
   document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  tab.classList.add('active');
+  if (tabEl) tabEl.classList.add('active');
+  else document.querySelectorAll('.nav-tab')[APP_ORDER.indexOf(id)].classList.add('active');
   document.getElementById('saveBar').className = 'save-bar' + (id === 'pg' ? ' visible' : '');
 }
+// swipe navigáció
+(function() {
+  let sx = 0, sy = 0;
+  document.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+    const cur = document.querySelector('.app-section.active')?.id;
+    const idx = APP_ORDER.indexOf(cur);
+    if (dx < 0 && idx < APP_ORDER.length-1) switchApp(APP_ORDER[idx+1]);
+    if (dx > 0 && idx > 0) switchApp(APP_ORDER[idx-1]);
+  }, {passive:true});
+})();
 
 // ══════════════════════════════════════════
 // KÖZÖS SEGÉDFÜGGVÉNY
@@ -660,7 +676,17 @@ function showToast(msg) {
     } catch(e){}
   }
 
-  function pkSyncAll() { for(let i=1;i<=pkBuiltDays;i++) pkSyncDay(i); }
+  function pkSyncAll() {
+    try {
+      const h = JSON.parse(localStorage.getItem('pontHistory')||'{}');
+      for(let i=1;i<=pkBuiltDays;i++){
+        const di=document.getElementById('pk-date-'+i), pi=document.getElementById('pk-day-'+i);
+        if(!di||!pi||!di.value) continue;
+        if(h[di.value]!==undefined){ const t=pkDayTotal(h[di.value]); pi.value=t>0?t:''; }
+      }
+      pkRecalc();
+    } catch(e){}
+  }
 
   function pkSave() {
     if(pkLoading) return;
