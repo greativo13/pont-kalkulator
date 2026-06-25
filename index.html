@@ -467,6 +467,7 @@ function showToast(msg) {
           const col = chosen ? COLORS.find(c=>c.key===chosen) : null;
           div.style.borderColor = col ? col.hex+'60' : '';
           div.style.background  = col ? col.hex+'10' : '';
+          pgSaveConfig();
         });
       });
       div.addEventListener('dragstart', e => { pgDragSrc=idx; setTimeout(()=>div.classList.add('dragging'),0); e.dataTransfer.effectAllowed='move'; });
