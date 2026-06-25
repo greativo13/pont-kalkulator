@@ -520,7 +520,7 @@ function showToast(msg) {
     document.getElementById('livePts').textContent=fmt(total);
   }
 
-  window.pgAdjust = function(id,delta) { pgCounts[id]=Math.max(0,(pgCounts[id]||0)+delta); pgUpdateUI(); };
+  window.pgAdjust = function(id,delta) { pgCounts[id]=Math.max(0,(pgCounts[id]||0)+delta); pgUpdateUI(); pgSaveDay(); };
 
   function pgGetHistory() { return JSON.parse(localStorage.getItem('pontHistory')||'{}'); }
   function pgSaveHistory(h) { localStorage.setItem('pontHistory',JSON.stringify(h)); }
