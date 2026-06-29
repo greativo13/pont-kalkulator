@@ -329,6 +329,7 @@ function switchApp(id, tabEl) {
   if (tabEl) tabEl.classList.add('active');
   else document.querySelectorAll('.nav-tab')[APP_ORDER.indexOf(id)].classList.add('active');
   document.getElementById('saveBar').className = 'save-bar' + (id === 'pg' ? ' visible' : '');
+  if (id === 'pk') setTimeout(() => { if (typeof pkSyncAll === 'function') pkSyncAll(); }, 50);
 }
 // swipe navigáció
 (function() {
