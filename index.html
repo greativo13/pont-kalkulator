@@ -172,12 +172,15 @@
     .setting-item input[type="number"] { width: 100%; }
     .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; }
     .target-info { font-size: 11px; color: var(--text-sub); margin-top: 10px; }
-    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
-    @media (max-width: 500px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
-    .metric-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 12px; text-align: center; }
-    .metric-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
-    .metric-value { font-size: 1.5rem; font-weight: 700; }
-    .metric-sub { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+    .metrics-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .metrics-hero { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; text-align: center; flex-shrink: 0; min-width: 110px; }
+    .metrics-hero-val { font-size: 2.4rem; font-weight: 800; color: var(--accent); line-height: 1; }
+    .metrics-hero-sub { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; flex: 1; }
+    .metric-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 10px; text-align: center; }
+    .metric-label { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+    .metric-value { font-size: 1.2rem; font-weight: 700; }
+    .metric-sub { font-size: 10px; color: var(--text-sub); margin-top: 2px; }
     .day-row { display: grid; grid-template-columns: 40px 1fr 80px; gap: 4px 6px; margin-bottom: 10px; align-items: center; }
     .day-label { font-size: 12px; color: var(--text-muted); grid-row: 1; grid-column: 1; align-self: center; }
     .day-date { grid-row: 1; grid-column: 2 / 4; width: auto; max-width: 160px; box-sizing: border-box; }
@@ -779,11 +782,18 @@ function showToast(msg) {
     const m100=Math.max(0,t100e-total), m80=Math.max(0,t80e-total), m50=Math.max(0,t50e-total);
     const col=pkPctColor(pct);
     document.getElementById('pk-summary-cards').innerHTML=`
-      <div class="metric-card"><div class="metric-label">Összes pont</div><div class="metric-value" style="color:var(--accent)">${fmt(total)}</div><div class="metric-sub">${elapsed} nap</div></div>
-      <div class="metric-card"><div class="metric-label">Teljesítmény</div><div class="metric-value" style="color:${col}">${pct.toFixed(1)}%</div><div class="metric-sub">${elapsed} napra</div></div>
-      <div class="metric-card"><div class="metric-label">Hiány 50%</div><div class="metric-value" style="color:var(--accent)">${m50>0?fmt(m50):'✓'}</div><div class="metric-sub">${m50>0?'pont':'Teljesítve'}</div></div>
-      <div class="metric-card"><div class="metric-label">Hiány 80%</div><div class="metric-value" style="color:var(--accent)">${m80>0?fmt(m80):'✓'}</div><div class="metric-sub">${m80>0?'pont':'Teljesítve'}</div></div>
-      <div class="metric-card"><div class="metric-label">Hiány 100%</div><div class="metric-value" style="color:var(--accent)">${m100>0?fmt(m100):'✓'}</div><div class="metric-sub">${m100>0?'pont':'Teljesítve'}</div></div>`;
+      <div class="metrics-wrap">
+        <div class="metrics-hero">
+          <div class="metrics-hero-val">${fmt(total)}</div>
+          <div class="metrics-hero-sub">összes pont</div>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card"><div class="metric-label">Teljesítmény</div><div class="metric-value" style="color:${col}">${pct.toFixed(1)}%</div><div class="metric-sub">${elapsed} nap</div></div>
+          <div class="metric-card"><div class="metric-label">Hiány 50%</div><div class="metric-value">${m50>0?fmt(m50):'✓'}</div><div class="metric-sub">${m50>0?'pont':'ok'}</div></div>
+          <div class="metric-card"><div class="metric-label">Hiány 80%</div><div class="metric-value">${m80>0?fmt(m80):'✓'}</div><div class="metric-sub">${m80>0?'pont':'ok'}</div></div>
+          <div class="metric-card"><div class="metric-label">Hiány 100%</div><div class="metric-value">${m100>0?fmt(m100):'✓'}</div><div class="metric-sub">${m100>0?'pont':'ok'}</div></div>
+        </div>
+      </div>`;
     for(let i=1;i<=days;i++){
       const p=points[i-1], bw=Math.min(100,p>0?(p/r120)*100:0);
       const bc=p>=r120?'#ea580c':p>=r100?'#0d9488':p>=r80?'#65a30d':'#818cf8';
