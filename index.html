@@ -204,6 +204,8 @@
     <div class="nav-tab" onclick="switchApp('pk', this)">📊 Kalkulátor</div>
   </div>
   <button class="theme-btn" onclick="location.reload()" title="Frissítés">🔄</button>
+  <button class="theme-btn" onclick="exportData()" title="Mentés fájlba">💾</button>
+  <label class="theme-btn" title="Visszatöltés fájlból" style="cursor:pointer"><input type="file" accept=".json" onchange="importData(this)" style="display:none">📂</label>
   <button class="theme-btn" onclick="cycleTheme()" id="themeBtn">🌓</button>
 </div>
 
@@ -315,6 +317,37 @@ function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   document.getElementById('themeBtn').textContent = THEME_ICONS[t];
   localStorage.setItem('vb-theme', t);
+}
+function exportData() {
+  const data = {
+    pontHistory: localStorage.getItem('pontHistory'),
+    pontConfig: localStorage.getItem('pontConfig'),
+    etup_kalkulator: localStorage.getItem('etup_kalkulator'),
+    'vb-theme': localStorage.getItem('vb-theme'),
+  };
+  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'vb-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  showToast('Mentve! ✓');
+}
+function importData(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(data.pontHistory) localStorage.setItem('pontHistory', data.pontHistory);
+      if(data.pontConfig) localStorage.setItem('pontConfig', data.pontConfig);
+      if(data.etup_kalkulator) localStorage.setItem('etup_kalkulator', data.etup_kalkulator);
+      if(data['vb-theme']) localStorage.setItem('vb-theme', data['vb-theme']);
+      showToast('Visszatöltve! ✓');
+      setTimeout(() => location.reload(), 800);
+    } catch(err) { alert('Hibás fájl!'); }
+  };
+  reader.readAsText(file);
+  input.value = '';
 }
 function cycleTheme() {
   const next = THEMES[(THEMES.indexOf(currentTheme) + 1) % THEMES.length];
