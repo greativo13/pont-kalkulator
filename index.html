@@ -770,25 +770,27 @@ function showToast(msg) {
 
   window.pkRecalc = function() {
     const days=pkGetDays(), elapsed=pkGetElapsed(), {r80,r100,r120}=pkGetRates();
-    const t80f=days*r80,t100f=days*r100,t120f=days*r120;
-    const t80e=elapsed*r80,t100e=elapsed*r100,t120e=elapsed*r120;
-    document.getElementById('pk-target-info').textContent='Teljes etup → 80%: '+fmt(t80f)+' pt  |  100%: '+fmt(t100f)+' pt  |  120%: '+fmt(t120f)+' pt';
+    const r50=r100*0.5;
+    const t50f=days*r50,t80f=days*r80,t100f=days*r100,t120f=days*r120;
+    const t50e=elapsed*r50,t80e=elapsed*r80,t100e=elapsed*r100,t120e=elapsed*r120;
+    document.getElementById('pk-target-info').textContent='Teljes etup → 50%: '+fmt(t50f)+' pt  |  80%: '+fmt(t80f)+' pt  |  100%: '+fmt(t100f)+' pt  |  120%: '+fmt(t120f)+' pt';
     const points=pkGetPoints(days), total=points.reduce((a,b)=>a+b,0);
     const pct=t100e>0?(total/t100e*100):0;
-    const m100=Math.max(0,t100e-total), m80=Math.max(0,t80e-total);
+    const m100=Math.max(0,t100e-total), m80=Math.max(0,t80e-total), m50=Math.max(0,t50e-total);
     const col=pkPctColor(pct);
     document.getElementById('pk-summary-cards').innerHTML=`
       <div class="metric-card"><div class="metric-label">Összes pont</div><div class="metric-value" style="color:var(--accent)">${fmt(total)}</div><div class="metric-sub">${elapsed} nap</div></div>
       <div class="metric-card"><div class="metric-label">Teljesítmény</div><div class="metric-value" style="color:${col}">${pct.toFixed(1)}%</div><div class="metric-sub">${elapsed} napra</div></div>
-      <div class="metric-card"><div class="metric-label">Hiány 100%</div><div class="metric-value" style="color:var(--accent)">${m100>0?fmt(m100):'✓'}</div><div class="metric-sub">${m100>0?'pont':'Teljesítve'}</div></div>
-      <div class="metric-card"><div class="metric-label">Hiány 80%</div><div class="metric-value" style="color:var(--accent)">${m80>0?fmt(m80):'✓'}</div><div class="metric-sub">${m80>0?'pont':'Teljesítve'}</div></div>`;
+      <div class="metric-card"><div class="metric-label">Hiány 50%</div><div class="metric-value" style="color:var(--accent)">${m50>0?fmt(m50):'✓'}</div><div class="metric-sub">${m50>0?'pont':'Teljesítve'}</div></div>
+      <div class="metric-card"><div class="metric-label">Hiány 80%</div><div class="metric-value" style="color:var(--accent)">${m80>0?fmt(m80):'✓'}</div><div class="metric-sub">${m80>0?'pont':'Teljesítve'}</div></div>
+      <div class="metric-card"><div class="metric-label">Hiány 100%</div><div class="metric-value" style="color:var(--accent)">${m100>0?fmt(m100):'✓'}</div><div class="metric-sub">${m100>0?'pont':'Teljesítve'}</div></div>`;
     for(let i=1;i<=days;i++){
       const p=points[i-1], bw=Math.min(100,p>0?(p/r120)*100:0);
       const bc=p>=r120?'#ea580c':p>=r100?'#0d9488':p>=r80?'#65a30d':'#818cf8';
       const be=document.getElementById('pk-bar-'+i);
       if(be){be.style.width=bw+'%';be.style.background=bc;}
     }
-    const pos80=(80/130)*100, pos100=(100/130)*100, pos120=(120/130)*100, fillW=Math.min(pct/130*100,100);
+    const pos50=(50/130)*100, pos80=(80/130)*100, pos100=(100/130)*100, pos120=(120/130)*100, fillW=Math.min(pct/130*100,100);
     document.getElementById('pk-gauge').innerHTML=`
       <div style="text-align:center;margin-bottom:20px;">
         <div class="gauge-pct" style="color:${col}">${pct.toFixed(1)}%</div>
@@ -797,6 +799,10 @@ function showToast(msg) {
       <div style="position:relative;margin:0 8px 36px;">
         <div style="height:16px;background:var(--bar-bg);border-radius:8px;overflow:hidden;">
           <div style="height:100%;width:${fillW}%;background:${col};border-radius:8px;transition:width 0.4s;"></div>
+        </div>
+        <div style="position:absolute;left:${pos50}%;top:0;transform:translateX(-50%);">
+          <div style="width:2px;height:16px;background:var(--bg);margin:0 auto;"></div>
+          <div style="font-size:10px;font-weight:600;color:#a855f7;text-align:center;margin-top:6px;white-space:nowrap;">50%<br><span style="font-weight:400;color:var(--text-muted)">${fmt(t50e)} pt</span></div>
         </div>
         <div style="position:absolute;left:${pos80}%;top:0;transform:translateX(-50%);">
           <div style="width:2px;height:16px;background:var(--bg);margin:0 auto;"></div>
