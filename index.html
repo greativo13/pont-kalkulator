@@ -727,8 +727,9 @@ function showToast(msg) {
 
   function pkSyncDay(i) {
     const di=document.getElementById('pk-date-'+i), pi=document.getElementById('pk-day-'+i);
-    if(!di||!pi||!di.value) return;
+    if(!di||!pi) return;
     pkAutoElapsed();
+    if(!di.value) { pkRecalc(); return; }
     try {
       const h=JSON.parse(localStorage.getItem('pontHistory')||'{}');
       if(h[di.value] !== undefined) {
