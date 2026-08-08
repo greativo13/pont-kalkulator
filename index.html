@@ -718,17 +718,25 @@ function showToast(msg) {
     let t=0; pkGetCats().forEach(c=>t+=(dc[c.id]||0)*c.pts); return t;
   }
 
+  function pkAutoElapsed() {
+    const days = pkGetDays();
+    let last = 0;
+    for(let i=1;i<=days;i++) { const d=document.getElementById('pk-date-'+i); if(d&&d.value) last=i; }
+    if(last>0) document.getElementById('elapsed-days').value=last;
+  }
+
   function pkSyncDay(i) {
     const di=document.getElementById('pk-date-'+i), pi=document.getElementById('pk-day-'+i);
     if(!di||!pi||!di.value) return;
+    pkAutoElapsed();
     try {
       const h=JSON.parse(localStorage.getItem('pontHistory')||'{}');
       if(h[di.value] !== undefined) {
         const t=pkDayTotal(h[di.value]);
         pi.value=t>0?t:'';
-        pkRecalc();
       }
     } catch(e){}
+    pkRecalc();
   }
 
   function pkSyncAll() {
