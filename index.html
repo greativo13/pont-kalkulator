@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>VB App</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#1e293b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="VB">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
     /* ── TÉMÁK ── */
     :root {
@@ -198,6 +204,31 @@
     .reset-btn:hover { background: var(--danger-dim); border-color: var(--danger); }
     .gauge-pct { font-size: 2.5rem; font-weight: 700; line-height: 1; }
     .gauge-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+    /* ── FEJLESZTÉSEK ── */
+    .undo-btn { background: var(--border); color: var(--text); border: none; border-radius: 8px; padding: 9px 12px; cursor: pointer; font-size: 0.95rem; display: none; }
+    .undo-btn.show { display: block; }
+    @media (max-width: 440px) {
+      .save-bar { gap: 6px; padding: 10px 10px; }
+      .save-bar .today-pts { min-width: 0; font-size: 0.8rem; }
+      .save-date { min-width: 0; flex: 1 1 auto; width: 120px; padding: 7px 6px; }
+      .save-btn { padding: 9px 12px; }
+    }
+    .banner { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--text); border-radius: var(--radius); padding: 10px 14px; margin: 12px 16px 0; font-size: 0.85rem; display: flex; align-items: center; gap: 10px; }
+    .banner button { margin-left: auto; background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 6px 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .banner .x { background: transparent; color: var(--text-muted); margin-left: 0; padding: 6px; }
+    .chart { display: flex; align-items: flex-end; gap: 4px; height: 120px; position: relative; margin-top: 18px; }
+    .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+    .chart-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 2px; }
+    .chart-lbl { font-size: 9px; color: var(--text-sub); margin-top: 4px; white-space: nowrap; }
+    .chart-target { position: absolute; left: 0; right: 0; border-top: 2px dashed #0d9488; pointer-events: none; }
+    .chart-target span { position: absolute; right: 0; top: -16px; font-size: 10px; color: #0d9488; font-weight: 600; }
+    .forecast { margin-top: 4px; display: grid; gap: 6px; }
+    .forecast-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 6px 0; border-bottom: 1px solid var(--border); }
+    .forecast-row:last-child { border-bottom: none; }
+    .share-bar { height: 4px; background: var(--bar-bg); border-radius: 2px; margin: 2px 0 6px; overflow: hidden; }
+    .share-fill { height: 100%; background: var(--accent); }
+    .fill-btn { width: 100%; margin-top: 6px; background: var(--accent-dim); color: var(--accent); border: 1px dashed var(--accent); border-radius: 8px; padding: 9px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
   </style>
 </head>
 <body>
@@ -216,6 +247,7 @@
       <button onclick="location.reload();toggleMenu()" style="width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 12px;cursor:pointer;border-radius:8px;font-size:0.9rem;display:flex;align-items:center;gap:10px;">🔄 Frissítés</button>
       <button onclick="exportData();toggleMenu()" style="width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 12px;cursor:pointer;border-radius:8px;font-size:0.9rem;display:flex;align-items:center;gap:10px;">💾 Mentés fájlba</button>
       <label style="width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 12px;cursor:pointer;border-radius:8px;font-size:0.9rem;display:flex;align-items:center;gap:10px;">📂 Visszatöltés<input type="file" accept=".json" onchange="importData(this);toggleMenu()" style="display:none"></label>
+      <button onclick="setupSync();toggleMenu()" style="width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 12px;cursor:pointer;border-radius:8px;font-size:0.9rem;display:flex;align-items:center;gap:10px;">☁️ Felhő szinkron <span id="syncState" style="margin-left:auto;font-size:0.75rem;color:var(--text-muted)"></span></button>
     </div>
   </div>
 </div>
@@ -272,6 +304,10 @@
 
   <div id="pg-elozmenyek" class="pg-page">
     <div class="page-wrap" style="padding-top:12px;">
+      <div class="section-box" style="margin-bottom:12px;">
+        <div class="section-title">Utolsó 14 nap</div>
+        <div id="historyChart"></div>
+      </div>
       <div class="history-list" id="historyList"></div>
       <button class="clear-btn" onclick="pgClearAll()">🗑 Összes adat törlése</button>
     </div>
@@ -299,7 +335,10 @@
     </div>
     <div id="pk-summary-cards"></div>
     <div class="card"><div class="section-title">Összesített teljesítmény</div><div id="pk-gauge"></div></div>
-    <div class="card"><div class="section-title">Napi bevitel</div><div id="pk-days-list"></div></div>
+    <div class="card"><div class="section-title">Előrejelzés</div><div id="pk-forecast" class="forecast"></div></div>
+    <div class="card"><div class="section-title">Napi bevitel</div><div id="pk-days-list"></div>
+      <button class="fill-btn" onclick="pkFillToday()">📅 Mai dátum a következő üres napra</button>
+    </div>
     <div style="text-align:center; margin-bottom:1rem;">
       <button onclick="pkReset()" class="reset-btn">🔄 Új etup indítása</button>
     </div>
@@ -310,6 +349,7 @@
 <div class="save-bar visible" id="saveBar">
   <div class="today-pts">Pontok: <span id="livePts">0</span></div>
   <input type="date" class="save-date" id="saveDate" onchange="pgOnDateChange()">
+  <button class="undo-btn" id="undoBtn" onclick="pgUndo()" title="Visszavonás">↶</button>
   <button class="save-btn" onclick="pgSaveDay()">Mentés ✓</button>
 </div>
 
@@ -346,6 +386,8 @@ function exportData() {
     'vb-theme': localStorage.getItem('vb-theme'),
   };
   const name = 'vb-backup-' + localKey(new Date()) + '.json';
+  localStorage.setItem('vb-lastBackup', String(Date.now()));
+  document.getElementById('backupBanner')?.remove();
   const json = JSON.stringify(data);
   // iOS főképernyős appban a letöltés nem mindig indul el – ott a megosztás menü kell
   try {
@@ -383,6 +425,103 @@ function cycleTheme() {
   applyTheme(next);
 }
 applyTheme(currentTheme);
+
+// ══════════════════════════════════════════
+// FELHŐ SZINKRON (Google Apps Script, lásd felho-szinkron.gs)
+// ══════════════════════════════════════════
+const SYNC_KEYS = ['pontHistory', 'pontConfig', 'etup_kalkulator'];
+const _setItem = Storage.prototype.setItem, _removeItem = Storage.prototype.removeItem;
+let syncTimer = null;
+// betöltés közbeni írások (pl. a kalkulátor újraszámolása) ne számítsanak módosításnak,
+// különben egy üres eszköz felülírná a felhőt
+let syncReady = false;
+function syncUrl() { return localStorage.getItem('vb-syncUrl') || ''; }
+function setSyncState(t) { const el = document.getElementById('syncState'); if (el) el.textContent = t; }
+function markDirty() {
+  if (!syncReady) return;
+  _setItem.call(localStorage, 'vb-updated', String(Date.now()));
+  if (!syncUrl()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncPush, 1500);
+}
+Storage.prototype.setItem = function(k, v) {
+  const changed = this === localStorage && SYNC_KEYS.includes(k) && this.getItem(k) !== String(v);
+  _setItem.call(this, k, v);
+  if (changed) markDirty();
+};
+Storage.prototype.removeItem = function(k) {
+  const changed = this === localStorage && SYNC_KEYS.includes(k) && this.getItem(k) !== null;
+  _removeItem.call(this, k);
+  if (changed) markDirty();
+};
+
+function syncSnapshot() {
+  const d = { updated: Number(localStorage.getItem('vb-updated') || 0) };
+  SYNC_KEYS.forEach(k => d[k] = localStorage.getItem(k));
+  return d;
+}
+async function syncPush() {
+  const url = syncUrl(); if (!url) return;
+  setSyncState('…');
+  try {
+    // text/plain → nincs CORS preflight, az Apps Script így fogadja
+    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(syncSnapshot()) });
+    setSyncState('✓');
+  } catch (e) { setSyncState('offline'); }
+}
+async function syncPull() {
+  const url = syncUrl(); if (!url) return;
+  setSyncState('…');
+  try {
+    const remote = await (await fetch(url)).json();
+    let localUpd = Number(localStorage.getItem('vb-updated') || 0);
+    // a szinkron előtti régi adatoknak még nincs időbélyege
+    if (!localUpd && localStorage.getItem('pontHistory')) {
+      localUpd = Date.now(); _setItem.call(localStorage, 'vb-updated', String(localUpd));
+    }
+    if (remote && remote.updated > localUpd) {
+      SYNC_KEYS.forEach(k => { if (remote[k] == null) _removeItem.call(localStorage, k); else _setItem.call(localStorage, k, remote[k]); });
+      _setItem.call(localStorage, 'vb-updated', String(remote.updated));
+      location.reload();
+      return;
+    }
+    if (!remote || !remote.updated || remote.updated < localUpd) await syncPush();
+    setSyncState('✓');
+  } catch (e) { setSyncState('offline'); }
+}
+function setupSync() {
+  const cur = syncUrl();
+  const url = prompt('Illeszd be a Google Apps Script webapp URL-jét.\n(Üresen hagyva kikapcsolod a szinkront.)', cur);
+  if (url === null) return;
+  const u = url.trim();
+  if (u && !/^https:\/\/script\.google\.com\//.test(u)) { alert('Ez nem Apps Script URL (https://script.google.com/...)'); return; }
+  if (u) _setItem.call(localStorage, 'vb-syncUrl', u); else _removeItem.call(localStorage, 'vb-syncUrl');
+  setSyncState(u ? '…' : '');
+  if (u) { showToast('Szinkron bekapcsolva'); syncPull(); }
+}
+window.addEventListener('load', () => {
+  if (syncUrl()) syncPull().finally(() => syncReady = true);
+  else syncReady = true;
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && syncUrl()) syncPull(); });
+
+// ══════════════════════════════════════════
+// MENTÉSI EMLÉKEZTETŐ
+// ══════════════════════════════════════════
+window.addEventListener('load', () => {
+  if (syncUrl() || !localStorage.getItem('pontHistory')) return;
+  const last = Number(localStorage.getItem('vb-lastBackup') || 0);
+  if (Date.now() - last < 7 * 864e5) return;
+  const b = document.createElement('div');
+  b.className = 'banner'; b.id = 'backupBanner';
+  b.innerHTML = `<span>💾 ${last ? 'Több mint 7 napja' : 'Még sosem'} mentettél biztonsági másolatot.</span><button onclick="exportData()">Mentés</button><button class="x" onclick="this.parentElement.remove()">✕</button>`;
+  document.querySelector('.nav').after(b);
+});
+
+// ══════════════════════════════════════════
+// PWA (offline + mindig a friss verzió)
+// ══════════════════════════════════════════
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
 // ══════════════════════════════════════════
 // APP VÁLTÁS
@@ -550,7 +689,7 @@ function showToast(msg) {
         <div class="cat-controls">
           <button class="del-cat-btn" onclick="pgDeleteCategory('${cat.id}')">✕</button>
           <button class="btn-minus" onclick="pgAdjust('${cat.id}',-1)">−</button>
-          <input type="number" class="cat-count" id="count-${cat.id}" value="0" min="0" onclick="this.select()" oninput="pgSetCount('${cat.id}',this.value)">
+          <input type="number" class="cat-count" id="count-${cat.id}" value="0" min="0" onfocus="pgPushUndo()" onclick="this.select()" oninput="pgSetCount('${cat.id}',this.value)">
           <button class="btn-plus" onclick="pgAdjust('${cat.id}',1)">+</button>
           <div class="cat-earned" id="earned-${cat.id}">0 p</div>
         </div>`;
@@ -618,7 +757,22 @@ function showToast(msg) {
     document.getElementById('livePts').textContent=fmt(total);
   }
 
-  window.pgAdjust = function(id,delta) { pgCounts[id]=Math.max(0,(pgCounts[id]||0)+delta); pgUpdateUI(); pgAutoSave(); };
+  // visszavonás: az utolsó 30 állapot
+  const pgUndoStack = [];
+  function pgUndoBtn() { document.getElementById('undoBtn').classList.toggle('show', pgUndoStack.length > 0); }
+  window.pgPushUndo = function() {
+    const snap = JSON.stringify(pgCounts);
+    if (pgUndoStack[pgUndoStack.length-1] !== snap) pgUndoStack.push(snap);
+    if (pgUndoStack.length > 30) pgUndoStack.shift();
+    pgUndoBtn();
+  };
+  window.pgUndo = function() {
+    const snap = pgUndoStack.pop(); if (!snap) return;
+    pgCounts = JSON.parse(snap);
+    pgUpdateUI(); pgAutoSave(); pgUndoBtn();
+  };
+
+  window.pgAdjust = function(id,delta) { pgPushUndo(); pgCounts[id]=Math.max(0,(pgCounts[id]||0)+delta); pgUpdateUI(); pgAutoSave(); };
   window.pgSetCount = function(id,val) { const v=parseInt(val); pgCounts[id]=isNaN(v)||v<0?0:v; pgUpdateUI(); pgAutoSave(); };
 
   // csendes automatikus mentés; üres napot nem ment el, hogy ne írja felül a kalkulátor kézi értékét
@@ -637,6 +791,7 @@ function showToast(msg) {
     const key = document.getElementById('saveDate').value || pgTodayKey();
     const h = pgGetHistory();
     if (h[key]) pgCounts={...h[key]}; else CATEGORIES.forEach(c=>pgCounts[c.id]=0);
+    pgUndoStack.length = 0; pgUndoBtn();
     pgUpdateUI();
   };
 
@@ -669,7 +824,15 @@ function showToast(msg) {
     document.getElementById('drTotal').textContent=fmt(total)+' pont';
     document.getElementById('drDays').textContent=dayCount+' nap adata';
     const bd=document.getElementById('drBreakdown'); bd.innerHTML='';
-    CATEGORIES.forEach(cat=>{const c=catTotals[cat.id]||0;if(c>0){const r=document.createElement('div');r.className='history-row';r.innerHTML=`<span>${esc(cat.name)} × ${c}</span><span>${fmt(c*cat.pts)} p</span>`;bd.appendChild(r);}});
+    // kategóriák a legtöbb pontot hozótól lefelé, arányjelzővel
+    CATEGORIES.filter(cat=>catTotals[cat.id]>0)
+      .sort((a,b)=>catTotals[b.id]*b.pts-catTotals[a.id]*a.pts)
+      .forEach(cat=>{
+        const c=catTotals[cat.id], p=c*cat.pts, share=total>0?p/total*100:0;
+        const r=document.createElement('div');
+        r.innerHTML=`<div class="history-row" style="border:none;padding-bottom:0"><span>${esc(cat.name)} × ${c}</span><span>${fmt(p)} p · ${share.toFixed(0)}%</span></div><div class="share-bar"><div class="share-fill" style="width:${share}%"></div></div>`;
+        bd.appendChild(r);
+      });
     if(!Object.keys(catTotals).length) bd.innerHTML='<div class="empty">Nincs adat ebben az időszakban.</div>';
     document.getElementById('drResult').style.display='block';
   };
@@ -690,8 +853,25 @@ function showToast(msg) {
     if(!any) bd.innerHTML='<div class="empty">Még nincs mai adat.</div>';
   }
 
+  function pgRenderChart(h) {
+    let target=130;
+    try { const s=JSON.parse(localStorage.getItem('etup_kalkulator')); if(s&&s.r100) target=s.r100; } catch(e){}
+    const days=[];
+    for(let i=13;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=localKey(d); days.push({k,d,v:h[k]?pgTotal(h[k]):0}); }
+    const max=Math.max(target*1.2,...days.map(x=>x.v));
+    const cols=days.map(x=>{
+      const col=x.v>=target*1.2?'#ea580c':x.v>=target?'#0d9488':x.v>=target*0.8?'#65a30d':'#818cf8';
+      return `<div class="chart-col" title="${pgFmtDate(x.k)}: ${fmt(x.v)} pont"><div class="chart-bar" style="height:${x.v/max*100}%;background:${x.v?col:'var(--bar-bg)'}"></div></div>`;
+    }).join('');
+    const lbls=days.map(x=>`<div class="chart-lbl" style="flex:1;text-align:center">${x.d.getDate()}</div>`).join('');
+    document.getElementById('historyChart').innerHTML=
+      `<div class="chart">${cols}<div class="chart-target" style="bottom:${target/max*100}%"><span>100% · ${fmt(target)}</span></div></div>`+
+      `<div style="display:flex;gap:4px">${lbls}</div>`;
+  }
+
   function pgUpdateHistory() {
     const h=pgGetHistory(), el=document.getElementById('historyList'); el.innerHTML='';
+    pgRenderChart(h);
     const keys=Object.keys(h).sort().reverse();
     if(!keys.length){el.innerHTML='<div class="empty">Még nincs mentett nap.</div>';return;}
     keys.forEach(key=>{
@@ -831,6 +1011,19 @@ function showToast(msg) {
     pkSave(); pkRecalc();
   };
 
+  window.pkFillToday = function() {
+    const today=localKey(new Date()), days=pkGetDays();
+    for(let i=1;i<=days;i++){
+      const d=document.getElementById('pk-date-'+i);
+      if(d&&d.value===today){ showToast(i+'. nap már a mai'); return; }
+    }
+    for(let i=1;i<=days;i++){
+      const d=document.getElementById('pk-date-'+i);
+      if(d&&!d.value){ d.value=today; pkSyncDay(i); pkSave(); showToast(i+'. nap = ma'); return; }
+    }
+    showToast('Nincs üres nap');
+  };
+
   window.pkToggleSettings = function() {
     pkSettingsOpen=!pkSettingsOpen;
     document.getElementById('pk-settings').style.display=pkSettingsOpen?'block':'none';
@@ -896,6 +1089,16 @@ function showToast(msg) {
       const be=document.getElementById('pk-bar-'+i);
       if(be){be.style.width=bw+'%';be.style.background=bc;}
     }
+    // előrejelzés: a hátralévő napokra mennyi kell naponta az egyes szintekhez
+    const remaining=days-elapsed;
+    const fc=[['50%',t50f,'#a855f7'],['80%',t80f,'#65a30d'],['100%',t100f,'#0d9488'],['120%',t120f,'#ea580c']].map(([l,t,c])=>{
+      const need=t-total;
+      const txt=need<=0?'✓ megvan':remaining<=0?`${fmt(need)} pont hiányzik`:`napi ${fmt(Math.ceil(need/remaining*2)/2)} pont`;
+      return `<div class="forecast-row"><span style="color:${c};font-weight:600">${l}</span><span>${txt}</span></div>`;
+    }).join('');
+    document.getElementById('pk-forecast').innerHTML=
+      `<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${remaining>0?`Még ${remaining} nap van hátra`:'Az etup véget ért'}</div>`+fc;
+
     const pos50=(50/130)*100, pos80=(80/130)*100, pos100=(100/130)*100, pos120=(120/130)*100, fillW=Math.min(pct/130*100,100);
     document.getElementById('pk-gauge').innerHTML=`
       <div style="text-align:center;margin-bottom:20px;">
