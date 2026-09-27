@@ -52,6 +52,12 @@
     .nav-tab.active { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
     .theme-btn { margin-left: auto; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
     .theme-btn:hover { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+    @media (max-width: 440px) {
+      .nav { padding: 0 8px; }
+      .nav-title { display: none; }
+      .nav-tab { padding: 6px 8px; font-size: 0.8rem; }
+      .theme-btn { width: 32px; height: 32px; }
+    }
 
     /* ── SECTION VÁLTÁS ── */
     .app-section { display: none; flex: 1; }
@@ -339,10 +345,19 @@ function exportData() {
     etup_kalkulator: localStorage.getItem('etup_kalkulator'),
     'vb-theme': localStorage.getItem('vb-theme'),
   };
-  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  const name = 'vb-backup-' + localKey(new Date()) + '.json';
+  const json = JSON.stringify(data);
+  // iOS főképernyős appban a letöltés nem mindig indul el – ott a megosztás menü kell
+  try {
+    const file = new File([json], name, {type:'application/json'});
+    if (navigator.canShare && navigator.canShare({files:[file]})) {
+      navigator.share({files:[file], title:name}).catch(()=>{});
+      return;
+    }
+  } catch(e) {}
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'vb-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.href = URL.createObjectURL(new Blob([json], {type:'application/json'}));
+  a.download = name;
   a.click();
   showToast('Mentve! ✓');
 }
@@ -403,6 +418,9 @@ function switchApp(id, tabEl) {
 // KÖZÖS SEGÉDFÜGGVÉNY
 // ══════════════════════════════════════════
 function fmt(n) { const v = parseFloat(n); return Number.isInteger(v) ? v : v.toFixed(1); }
+// helyi idő szerinti YYYY-MM-DD (a toISOString UTC-t ad, éjfél után rossz napot)
+function localKey(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.opacity = '1';
@@ -455,11 +473,26 @@ function showToast(msg) {
   let pgEditMode = false;
   let pgDragSrc = null;
 
-  function pgTodayKey() { return new Date().toISOString().slice(0,10); }
+  function pgTodayKey() { return localKey(new Date()); }
   function pgFmtDate(k) { const [y,m,d]=k.split('-'); return `${y}. ${m}. ${d}.`; }
   function pgTotal(c) { return CATEGORIES.reduce((s,cat)=>s+(c[cat.id]||0)*cat.pts,0); }
 
+  // szerkesztés módban a beírt nevek/pontok átvétele, hogy újraépítéskor ne vesszenek el
+  function pgCommitEdits() {
+    document.querySelectorAll('.pts-input').forEach(inp => {
+      const cat = CATEGORIES.find(c=>c.id===inp.dataset.id);
+      const v = parseFloat(inp.value);
+      if (cat && !isNaN(v) && v>=0) cat.pts = v;
+    });
+    document.querySelectorAll('.cat-name-input').forEach(inp => {
+      const cat = CATEGORIES.find(c=>c.id===inp.dataset.id);
+      const v = inp.value.trim();
+      if (cat && v) cat.name = v;
+    });
+  }
+
   window.pgAddCategory = function() {
+    pgCommitEdits();
     const id = 'cat_' + Date.now();
     CATEGORIES.push({ id, name: 'Új kategória', pts: 1, color: null });
     pgCounts[id] = 0;
@@ -472,7 +505,8 @@ function showToast(msg) {
 
   window.pgDeleteCategory = function(id) {
     if (!confirm('Törlöd ezt a kategóriát?')) return;
-    CATEGORIES = CATEGORIES.filter(c => c.id !== id);
+    pgCommitEdits();
+    CATEGORIES =CATEGORIES.filter(c => c.id !== id);
     delete pgCounts[id];
     pgSaveConfig(); pgBuildList(); pgUpdateUI();
   };
@@ -486,16 +520,7 @@ function showToast(msg) {
     list.classList.toggle('edit-mode', pgEditMode);
     document.getElementById('addCatBtn').style.display = pgEditMode ? 'block' : 'none';
     if (!pgEditMode) {
-      document.querySelectorAll('.pts-input').forEach(inp => {
-        const cat = CATEGORIES.find(c=>c.id===inp.dataset.id);
-        const v = parseFloat(inp.value);
-        if (cat && !isNaN(v) && v>=0) cat.pts = v;
-      });
-      document.querySelectorAll('.cat-name-input').forEach(inp => {
-        const cat = CATEGORIES.find(c=>c.id===inp.dataset.id);
-        const v = inp.value.trim();
-        if (cat && v) cat.name = v;
-      });
+      pgCommitEdits();
       pgSaveConfig(); pgBuildList(); pgUpdateUI();
     }
   };
@@ -514,8 +539,8 @@ function showToast(msg) {
       div.innerHTML = `
         <div class="drag-handle">⠿</div>
         <div class="cat-info">
-          <span class="cat-name cat-name-static">${cat.name}</span>
-          <input class="cat-name-input" type="text" value="${cat.name}" data-id="${cat.id}">
+          <span class="cat-name cat-name-static">${esc(cat.name)}</span>
+          <input class="cat-name-input" type="text" value="${esc(cat.name)}" data-id="${cat.id}">
           <div class="cat-pts">${fmt(cat.pts)} pont / db</div>
           <div class="pts-edit-wrap"><span style="font-size:0.72rem;color:var(--text-muted);">Pont:</span>
             <input class="pts-input" type="number" min="0" step="0.5" value="${cat.pts}" data-id="${cat.id}">
@@ -547,6 +572,7 @@ function showToast(msg) {
       div.addEventListener('drop', e => {
         e.preventDefault(); div.classList.remove('drag-over');
         if (pgDragSrc===null||pgDragSrc===idx) return;
+        pgCommitEdits();
         const moved=CATEGORIES.splice(pgDragSrc,1)[0]; CATEGORIES.splice(idx,0,moved);
         pgDragSrc=null; pgSaveConfig(); pgBuildList(); pgUpdateUI();
       });
@@ -569,6 +595,7 @@ function showToast(msg) {
         if (over && over !== div) {
           const toIdx = parseInt(over.dataset.idx);
           if (!isNaN(toIdx) && toIdx !== pgDragSrc) {
+            pgCommitEdits();
             const moved = CATEGORIES.splice(pgDragSrc, 1)[0];
             CATEGORIES.splice(toIdx, 0, moved);
             pgSaveConfig(); pgBuildList(); pgUpdateUI();
@@ -591,8 +618,17 @@ function showToast(msg) {
     document.getElementById('livePts').textContent=fmt(total);
   }
 
-  window.pgAdjust = function(id,delta) { pgCounts[id]=Math.max(0,(pgCounts[id]||0)+delta); pgUpdateUI(); pgSaveDay(); };
-  window.pgSetCount = function(id,val) { const v=parseInt(val); pgCounts[id]=isNaN(v)||v<0?0:v; pgUpdateUI(); pgSaveDay(); };
+  window.pgAdjust = function(id,delta) { pgCounts[id]=Math.max(0,(pgCounts[id]||0)+delta); pgUpdateUI(); pgAutoSave(); };
+  window.pgSetCount = function(id,val) { const v=parseInt(val); pgCounts[id]=isNaN(v)||v<0?0:v; pgUpdateUI(); pgAutoSave(); };
+
+  // csendes automatikus mentés; üres napot nem ment el, hogy ne írja felül a kalkulátor kézi értékét
+  function pgAutoSave() {
+    const key = document.getElementById('saveDate').value || pgTodayKey();
+    const h = pgGetHistory();
+    if (Object.values(pgCounts).some(v => v > 0)) h[key] = {...pgCounts};
+    else delete h[key];
+    pgSaveHistory(h);
+  }
 
   function pgGetHistory() { return JSON.parse(localStorage.getItem('pontHistory')||'{}'); }
   function pgSaveHistory(h) { localStorage.setItem('pontHistory',JSON.stringify(h)); }
@@ -623,9 +659,9 @@ function showToast(msg) {
     if (!from||!to||from>to){alert('Adj meg érvényes időszakot!');return;}
     const h=pgGetHistory(), today=pgTodayKey();
     let total=0,dayCount=0; const catTotals={};
-    const cur=new Date(from), end=new Date(to);
+    const cur=new Date(from+'T00:00'), end=new Date(to+'T00:00');
     while(cur<=end){
-      const k=cur.toISOString().slice(0,10);
+      const k=localKey(cur);
       const dc=k===today?pgCounts:(h[k]||null);
       if(dc){dayCount++;CATEGORIES.forEach(cat=>{const c=dc[cat.id]||0;if(c>0){catTotals[cat.id]=(catTotals[cat.id]||0)+c;total+=c*cat.pts;}});}
       cur.setDate(cur.getDate()+1);
@@ -633,7 +669,7 @@ function showToast(msg) {
     document.getElementById('drTotal').textContent=fmt(total)+' pont';
     document.getElementById('drDays').textContent=dayCount+' nap adata';
     const bd=document.getElementById('drBreakdown'); bd.innerHTML='';
-    CATEGORIES.forEach(cat=>{const c=catTotals[cat.id]||0;if(c>0){const r=document.createElement('div');r.className='history-row';r.innerHTML=`<span>${cat.name} × ${c}</span><span>${fmt(c*cat.pts)} p</span>`;bd.appendChild(r);}});
+    CATEGORIES.forEach(cat=>{const c=catTotals[cat.id]||0;if(c>0){const r=document.createElement('div');r.className='history-row';r.innerHTML=`<span>${esc(cat.name)} × ${c}</span><span>${fmt(c*cat.pts)} p</span>`;bd.appendChild(r);}});
     if(!Object.keys(catTotals).length) bd.innerHTML='<div class="empty">Nincs adat ebben az időszakban.</div>';
     document.getElementById('drResult').style.display='block';
   };
@@ -643,14 +679,14 @@ function showToast(msg) {
     document.getElementById('s-today').textContent=fmt(todayTotal);
     const now=new Date(), dow=now.getDay()===0?6:now.getDay()-1;
     let wt=0;
-    for(let i=0;i<=dow;i++){const d=new Date(now);d.setDate(now.getDate()-i);const k=d.toISOString().slice(0,10);wt+=k===today?todayTotal:(h[k]?pgTotal(h[k]):0);}
+    for(let i=0;i<=dow;i++){const d=new Date(now);d.setDate(now.getDate()-i);const k=localKey(d);wt+=k===today?todayTotal:(h[k]?pgTotal(h[k]):0);}
     document.getElementById('s-week').textContent=fmt(wt);
     const ym=today.slice(0,7); let mt=todayTotal;
     Object.keys(h).forEach(k=>{if(k.startsWith(ym)&&k!==today)mt+=pgTotal(h[k]);});
     document.getElementById('s-month').textContent=fmt(mt);
     const bd=document.getElementById('todayBreakdown'); bd.innerHTML='';
     let any=false;
-    CATEGORIES.forEach(cat=>{const c=pgCounts[cat.id]||0;if(c>0){any=true;const r=document.createElement('div');r.className='history-row';r.innerHTML=`<span>${cat.name} × ${c}</span><span>${fmt(c*cat.pts)} p</span>`;bd.appendChild(r);}});
+    CATEGORIES.forEach(cat=>{const c=pgCounts[cat.id]||0;if(c>0){any=true;const r=document.createElement('div');r.className='history-row';r.innerHTML=`<span>${esc(cat.name)} × ${c}</span><span>${fmt(c*cat.pts)} p</span>`;bd.appendChild(r);}});
     if(!any) bd.innerHTML='<div class="empty">Még nincs mai adat.</div>';
   }
 
@@ -662,7 +698,7 @@ function showToast(msg) {
       const dc=h[key], total=pgTotal(dc);
       const div=document.createElement('div'); div.className='history-day';
       const body=document.createElement('div'); body.className='history-day-body';
-      CATEGORIES.forEach(cat=>{const c=dc[cat.id]||0;if(c>0){const r=document.createElement('div');r.className='history-row';r.innerHTML=`<span>${cat.name} × ${c}</span><span>${fmt(c*cat.pts)} p</span>`;body.appendChild(r);}});
+      CATEGORIES.forEach(cat=>{const c=dc[cat.id]||0;if(c>0){const r=document.createElement('div');r.className='history-row';r.innerHTML=`<span>${esc(cat.name)} × ${c}</span><span>${fmt(c*cat.pts)} p</span>`;body.appendChild(r);}});
       const hdr=document.createElement('div'); hdr.className='history-day-header';
       hdr.innerHTML=`<span class="hd-date">${pgFmtDate(key)}</span><span class="hd-total">${fmt(total)} pont</span>`;
       hdr.onclick=()=>body.classList.toggle('open');
@@ -722,7 +758,7 @@ function showToast(msg) {
     const days = pkGetDays();
     let last = 0;
     for(let i=1;i<=days;i++) { const d=document.getElementById('pk-date-'+i); if(d&&d.value) last=i; }
-    if(last>0) document.getElementById('elapsed-days').value=last;
+    document.getElementById('elapsed-days').value=last||1;
   }
 
   function pkSyncDay(i) {
