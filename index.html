@@ -347,7 +347,17 @@
     <div style="text-align:center; margin-bottom:1rem;">
       <button onclick="pkReset()" class="reset-btn">🔄 Új etup indítása</button>
     </div>
-    <div class="card"><div class="section-title">Korábbi etupok</div><div id="pk-archive" class="history-list"></div></div>
+    <div class="card"><div class="section-title">Korábbi etupok</div><div id="pk-archive" class="history-list"></div>
+      <div class="date-range-box" style="margin:12px 0 0">
+        <div class="dr-label">Régi etup hozzáadása a Pontgyűjtőből</div>
+        <div class="dr-row">
+          <input type="date" id="arcFrom">
+          <span style="color:var(--text-sub);font-size:0.82rem;">–</span>
+          <input type="date" id="arcTo">
+          <button class="dr-btn" onclick="pkArchiveRange()">Hozzáad</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1047,6 +1057,24 @@ function showToast(msg) {
     });
   }
   function pgFmt(k){ const [y,m,d]=k.split('-'); return `${m}. ${d}.`; }
+  // a tartományban lévő, ponttal rendelkező napokból archivált etup (a mostanit nem érinti)
+  window.pkArchiveRange = function() {
+    const from=document.getElementById('arcFrom').value, to=document.getElementById('arcTo').value;
+    if(!from||!to||from>to){ alert('Adj meg érvényes időszakot!'); return; }
+    let h={}; try { h=JSON.parse(localStorage.getItem('pontHistory')||'{}'); } catch(e){}
+    const dates=Object.keys(h).filter(k=>k>=from&&k<=to&&pkDayTotal(h[k])>0).sort();
+    if(!dates.length){ alert('Ebben az időszakban nincs mentett nap a Pontgyűjtőben.'); return; }
+    const points=dates.map(k=>pkDayTotal(h[k])), total=points.reduce((a,b)=>a+b,0);
+    const {r80,r100,r120}=pkGetRates(), n=dates.length;
+    const a=pkGetArchive();
+    a.push({closed:to,days:n,elapsed:n,r80,r100,r120,points,dates,total,pct:total/(n*r100)*100});
+    a.sort((x,y)=>(y.dates.filter(Boolean).sort()[0]||y.closed).localeCompare(x.dates.filter(Boolean).sort()[0]||x.closed));
+    localStorage.setItem('etup_archive',JSON.stringify(a));
+    pkRenderArchive();
+    document.getElementById('arcFrom').value=''; document.getElementById('arcTo').value='';
+    showToast(n+' nap hozzáadva ✓');
+  };
+
   window.pkDeleteArchive = function(idx) {
     if(!confirm('Törlöd ezt a lezárt etupot?')) return;
     const a=pkGetArchive(); a.splice(idx,1);
