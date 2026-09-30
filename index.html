@@ -347,6 +347,7 @@
     <div style="text-align:center; margin-bottom:1rem;">
       <button onclick="pkReset()" class="reset-btn">🔄 Új etup indítása</button>
     </div>
+    <div class="card"><div class="section-title">Korábbi etupok</div><div id="pk-archive" class="history-list"></div></div>
   </div>
 </div>
 
@@ -388,6 +389,7 @@ function exportData() {
     pontHistory: localStorage.getItem('pontHistory'),
     pontConfig: localStorage.getItem('pontConfig'),
     etup_kalkulator: localStorage.getItem('etup_kalkulator'),
+    etup_archive: localStorage.getItem('etup_archive'),
     'vb-theme': localStorage.getItem('vb-theme'),
   };
   const name = 'vb-backup-' + localKey(new Date()) + '.json';
@@ -417,6 +419,7 @@ function importData(input) {
       if(data.pontHistory) localStorage.setItem('pontHistory', data.pontHistory);
       if(data.pontConfig) localStorage.setItem('pontConfig', data.pontConfig);
       if(data.etup_kalkulator) localStorage.setItem('etup_kalkulator', data.etup_kalkulator);
+      if(data.etup_archive) localStorage.setItem('etup_archive', data.etup_archive);
       if(data['vb-theme']) localStorage.setItem('vb-theme', data['vb-theme']);
       showToast('Visszatöltve! ✓');
       setTimeout(() => location.reload(), 800);
@@ -434,7 +437,7 @@ applyTheme(currentTheme);
 // ══════════════════════════════════════════
 // FELHŐ SZINKRON (Google Apps Script, lásd felho-szinkron.gs)
 // ══════════════════════════════════════════
-const SYNC_KEYS = ['pontHistory', 'pontConfig', 'etup_kalkulator'];
+const SYNC_KEYS = ['pontHistory', 'pontConfig', 'etup_kalkulator', 'etup_archive'];
 const _setItem = Storage.prototype.setItem, _removeItem = Storage.prototype.removeItem;
 let syncTimer = null;
 // betöltés közbeni írások (pl. a kalkulátor újraszámolása) ne számítsanak módosításnak,
@@ -1006,14 +1009,48 @@ function showToast(msg) {
   }
 
   window.pkReset = function() {
-    if(!confirm('Biztosan törölsz minden napi pontot? (A beállítások megmaradnak.)')) return;
+    if(!confirm('Lezárod ezt az etupot és újat kezdesz? (A mostani a „Korábbi etupok” közé kerül.)')) return;
     const days=pkGetDays();
+    // archiválás, ha volt benne pont
+    const points=pkGetPoints(days), total=points.reduce((a,b)=>a+b,0);
+    if(total>0){
+      const {r80,r100,r120}=pkGetRates(), elapsed=pkGetElapsed();
+      const dates=[]; for(let i=1;i<=days;i++){const d=document.getElementById('pk-date-'+i);dates.push(d?d.value:'');}
+      const a=pkGetArchive();
+      a.unshift({closed:localKey(new Date()),days,elapsed,r80,r100,r120,points,dates,total,pct:elapsed*r100>0?total/(elapsed*r100)*100:0});
+      localStorage.setItem('etup_archive',JSON.stringify(a));
+      pkRenderArchive();
+    }
     for(let i=1;i<=days;i++){
       const pi=document.getElementById('pk-day-'+i), di=document.getElementById('pk-date-'+i);
       if(pi) pi.value=''; if(di) di.value='';
     }
     document.getElementById('elapsed-days').value=1;
     pkSave(); pkRecalc();
+  };
+
+  function pkGetArchive() { try { return JSON.parse(localStorage.getItem('etup_archive'))||[]; } catch(e){ return []; } }
+  function pkRenderArchive() {
+    const el=document.getElementById('pk-archive'), a=pkGetArchive(); el.innerHTML='';
+    if(!a.length){ el.innerHTML='<div class="empty">Még nincs lezárt etup.</div>'; return; }
+    a.forEach((e,idx)=>{
+      const f=e.dates.filter(Boolean).sort(), range=f.length?pgFmt(f[0])+' – '+pgFmt(f[f.length-1]):'lezárva '+pgFmt(e.closed);
+      const div=document.createElement('div'); div.className='history-day';
+      const body=document.createElement('div'); body.className='history-day-body';
+      body.innerHTML=e.points.map((p,i)=>p>0||e.dates[i]?`<div class="history-row"><span>${i+1}. nap${e.dates[i]?' · '+pgFmt(e.dates[i]):''}</span><span>${fmt(p)} pt</span></div>`:'').join('')+
+        `<div class="history-row"><span>Eltelt / összes nap</span><span>${e.elapsed} / ${e.days}</span></div>`+
+        `<button class="clear-btn" style="margin-top:10px;padding:7px" onclick="pkDeleteArchive(${idx})">🗑 Törlés</button>`;
+      const hdr=document.createElement('div'); hdr.className='history-day-header';
+      hdr.innerHTML=`<span class="hd-date">${range}</span><span class="hd-total" style="color:${pkPctColor(e.pct)}">${fmt(e.total)} pt · ${e.pct.toFixed(1)}%</span>`;
+      hdr.onclick=()=>body.classList.toggle('open');
+      div.appendChild(hdr); div.appendChild(body); el.appendChild(div);
+    });
+  }
+  function pgFmt(k){ const [y,m,d]=k.split('-'); return `${m}. ${d}.`; }
+  window.pkDeleteArchive = function(idx) {
+    if(!confirm('Törlöd ezt a lezárt etupot?')) return;
+    const a=pkGetArchive(); a.splice(idx,1);
+    localStorage.setItem('etup_archive',JSON.stringify(a)); pkRenderArchive();
   };
 
   window.pkFillToday = function() {
@@ -1135,6 +1172,7 @@ function showToast(msg) {
   };
 
   pkLoad();
+  pkRenderArchive();
 }
 </script>
 </body>
