@@ -1166,7 +1166,8 @@ function showToast(msg) {
     const remaining=days-filled;
     const fc=[['50%',t50f,'#a855f7'],['80%',t80f,'#65a30d'],['100%',t100f,'#0d9488'],['120%',t120f,'#ea580c']].map(([l,t,c])=>{
       const need=t-total;
-      const txt=need<=0?'✓ megvan':remaining<=0?`${fmt(need)} pont hiányzik`:`napi ${fmt(Math.ceil(need/remaining*2)/2)} pont`;
+      const daily=remaining>0?` <span style="color:var(--text-muted);font-size:0.78rem">· napi ${fmt(Math.ceil(need/remaining*2)/2)}</span>`:'';
+      const txt=need<=0?'✓ megvan':`még <b>${fmt(need)}</b> pont${daily}`;
       return `<div class="forecast-row"><span style="color:${c};font-weight:600">${l}</span><span>${txt}</span></div>`;
     }).join('');
     document.getElementById('pk-forecast').innerHTML=
