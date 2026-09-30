@@ -1160,7 +1160,10 @@ function showToast(msg) {
       if(be){be.style.width=bw+'%';be.style.background=bc;}
     }
     // előrejelzés: a hátralévő napokra mennyi kell naponta az egyes szintekhez
-    const remaining=days-elapsed;
+    // hátralévő = a még ki nem töltött napok (az "eltelt napok" 1-ről indul, üres etupnál is)
+    let filled=0;
+    for(let i=1;i<=days;i++){ const d=document.getElementById('pk-date-'+i); if(points[i-1]>0||(d&&d.value)) filled=i; }
+    const remaining=days-filled;
     const fc=[['50%',t50f,'#a855f7'],['80%',t80f,'#65a30d'],['100%',t100f,'#0d9488'],['120%',t120f,'#ea580c']].map(([l,t,c])=>{
       const need=t-total;
       const txt=need<=0?'✓ megvan':remaining<=0?`${fmt(need)} pont hiányzik`:`napi ${fmt(Math.ceil(need/remaining*2)/2)} pont`;
