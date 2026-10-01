@@ -1159,19 +1159,17 @@ function showToast(msg) {
       const be=document.getElementById('pk-bar-'+i);
       if(be){be.style.width=bw+'%';be.style.background=bc;}
     }
-    // előrejelzés: a hátralévő napokra mennyi kell naponta az egyes szintekhez
-    // hátralévő = a még ki nem töltött napok (az "eltelt napok" 1-ről indul, üres etupnál is)
+    // a már beírt napokhoz viszonyítva mennyi hiányzik az egyes szintekhez
     let filled=0;
     for(let i=1;i<=days;i++){ const d=document.getElementById('pk-date-'+i); if(points[i-1]>0||(d&&d.value)) filled=i; }
-    const remaining=days-filled;
-    const fc=[['50%',t50f,'#a855f7'],['80%',t80f,'#65a30d'],['100%',t100f,'#0d9488'],['120%',t120f,'#ea580c']].map(([l,t,c])=>{
-      const need=t-total;
-      const daily=remaining>0?` <span style="color:var(--text-muted);font-size:0.78rem">· napi ${fmt(Math.ceil(need/remaining*2)/2)}</span>`:'';
-      const txt=need<=0?'✓ megvan':`még <b>${fmt(need)}</b> pont${daily}`;
-      return `<div class="forecast-row"><span style="color:${c};font-weight:600">${l}</span><span>${txt}</span></div>`;
+    const fc=[['50%',r50,'#a855f7'],['80%',r80,'#65a30d'],['100%',r100,'#0d9488'],['120%',r120,'#ea580c']].map(([l,r,c])=>{
+      const target=filled*r, need=target-total;
+      const txt=need<=0?`✓ megvan <span style="color:var(--text-muted);font-size:0.78rem">· +${fmt(-need)}</span>`:`még <b>${fmt(need)}</b> pont`;
+      return `<div class="forecast-row"><span style="color:${c};font-weight:600">${l} <span style="color:var(--text-muted);font-weight:400;font-size:0.78rem">(${fmt(target)} pt)</span></span><span>${txt}</span></div>`;
     }).join('');
-    document.getElementById('pk-forecast').innerHTML=
-      `<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${remaining>0?`Még ${remaining} nap van hátra`:'Az etup véget ért'}</div>`+fc;
+    document.getElementById('pk-forecast').innerHTML=filled
+      ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${filled} beírt nap alapján · ${fmt(total)} pont</div>`+fc
+      : '<div class="empty" style="padding:12px">Még nincs beírt nap.</div>';
 
     const pos50=(50/130)*100, pos80=(80/130)*100, pos100=(100/130)*100, pos120=(120/130)*100, fillW=Math.min(pct/130*100,100);
     document.getElementById('pk-gauge').innerHTML=`
